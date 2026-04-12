@@ -6,18 +6,20 @@ import 'package:mafia_app/firebase_options.dart';
 import 'theme.dart';
 import 'router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'providers/app_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Edge-to-edge rendering
-  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-    statusBarColor: Colors.transparent,
-    statusBarIconBrightness: Brightness.light,
-    systemNavigationBarColor: Colors.transparent,
-    systemNavigationBarIconBrightness: Brightness.light,
-  ));
+  // Lock orientation to portrait
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+
+  // Hide system UI (FullScreen / Immersive Sticky)
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
 
   bool firebaseInitialized = false;
   String errorMsg = '';
@@ -37,8 +39,13 @@ void main() async {
     debugPrint("Firebase init failed: $e");
   }
 
+  final sharedPrefs = await SharedPreferences.getInstance();
+
   runApp(
     ProviderScope(
+      overrides: [
+        sharedPreferencesProvider.overrideWithValue(sharedPrefs),
+      ],
       child: firebaseInitialized
           ? const MafiaApp()
           : FirebaseErrorApp(error: errorMsg),

@@ -21,8 +21,20 @@ class LobbyScreen extends ConsumerStatefulWidget {
 
 class _LobbyScreenState extends ConsumerState<LobbyScreen> {
   final _gameService = GameService();
-  int _mafiaCount = 1;
-  bool _hasRabidDog = false;
+  bool _hasMafia2 = true;
+  bool _hasRabidDog = true;
+
+  void _updateConfig() {
+    _gameService.configureGame(
+      widget.roomCode,
+      hasMafia1: true,
+      hasMafia2: _hasMafia2,
+      hasDoctor: true,
+      hasGodfather: true,
+      hasDetective: true,
+      hasRabidDog: _hasRabidDog,
+    );
+  }
 
   @override
   void initState() {
@@ -89,6 +101,43 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
     );
   }
 
+  void _showExitConfirmation(BuildContext context, bool isHost) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(isHost ? 'Terminate Game?' : 'Leave Game?', style: Theme.of(context).textTheme.displayMedium),
+        content: Text(
+          isHost 
+            ? 'Are you sure? This will terminate the room for everyone.' 
+            : 'Are you sure you want to leave this game?',
+          style: Theme.of(context).textTheme.titleLarge,
+          textAlign: TextAlign.center,
+        ),
+        actions: [
+          GameButton(
+            label: 'CANCEL',
+            type: GameButtonType.warning,
+            onPressed: () => Navigator.of(ctx).pop(),
+          ),
+          GameButton(
+            label: isHost ? 'TERMINATE' : 'LEAVE',
+            type: GameButtonType.primary,
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              if (isHost) {
+                await _gameService.terminateRoom(widget.roomCode);
+              }
+              await _gameService.leaveSession();
+              if (context.mounted) {
+                context.go('/');
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final roomAsync = ref.watch(roomStreamProvider);
@@ -108,6 +157,12 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.exit_to_app, color: AppTheme.danger),
+            onPressed: () => _showExitConfirmation(context, isHost),
+          ),
+        ],
       ),
       child: roomAsync.when(
           data: (room) {
@@ -130,42 +185,54 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
                             textAlign: TextAlign.center,
                           ),
                           const SizedBox(height: 12),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text('Mafia Count', style: theme.textTheme.bodyLarge),
-                              DropdownButton<int>(
-                                value: _mafiaCount,
-                                dropdownColor: AppTheme.surface,
-                                style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
-                                items: const [
-                                  DropdownMenuItem(value: 1, child: Text('1')),
-                                  DropdownMenuItem(value: 2, child: Text('2')),
-                                ],
-                                onChanged: (val) {
-                                  setState(() => _mafiaCount = val!);
-                                  _gameService.configureGame(
-                                    widget.roomCode,
-                                    _mafiaCount,
-                                    _hasRabidDog,
-                                  );
-                                },
-                              ),
-                            ],
+                          // Fixed roles
+                          SwitchListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text('Godfather', style: theme.textTheme.bodyLarge),
+                            activeColor: Colors.grey,
+                            value: true,
+                            onChanged: null,
                           ),
                           SwitchListTile(
                             contentPadding: EdgeInsets.zero,
-                            title: Text('Include Rabid Dog', style: theme.textTheme.bodyLarge),
+                            title: Text('Mafia 1', style: theme.textTheme.bodyLarge),
+                            activeColor: Colors.grey,
+                            value: true,
+                            onChanged: null,
+                          ),
+                          SwitchListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text('Mafia 2', style: theme.textTheme.bodyLarge),
+                            activeColor: AppTheme.success,
+                            value: _hasMafia2,
+                            onChanged: (val) {
+                              setState(() => _hasMafia2 = val);
+                              _updateConfig();
+                            },
+                          ),
+                          SwitchListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text('Doctor', style: theme.textTheme.bodyLarge),
+                            activeColor: Colors.grey,
+                            value: true,
+                            onChanged: null,
+                          ),
+                          SwitchListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text('Rabid Dog', style: theme.textTheme.bodyLarge),
                             activeColor: AppTheme.success,
                             value: _hasRabidDog,
                             onChanged: (val) {
                               setState(() => _hasRabidDog = val);
-                              _gameService.configureGame(
-                                widget.roomCode,
-                                _mafiaCount,
-                                _hasRabidDog,
-                              );
+                              _updateConfig();
                             },
+                          ),
+                          SwitchListTile(
+                            contentPadding: EdgeInsets.zero,
+                            title: Text('Detective', style: theme.textTheme.bodyLarge),
+                            activeColor: Colors.grey,
+                            value: true,
+                            onChanged: null,
                           ),
                         ],
                       ),

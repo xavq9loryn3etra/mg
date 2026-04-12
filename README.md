@@ -1,6 +1,4 @@
-# Mafia Go (Serverless Architecture)
-
-This repository contains the completely serverless implementation of a multiplayer Mafia party game built with a Flutter frontend and Firebase Realtime Database. The game relies entirely on client-side state management, allowing the backend to remain 100% on the Firebase free tier.
+# MG
 
 ## Project Structure
 
@@ -41,7 +39,6 @@ Because all logic runs locally on the devices, your database essentially acts as
 
 ### Scheduled Cleanups
 To prevent reaching resource caps on Firebase's free Spark plan, an automatic GitHub action (`cleanup.yml`) runs every midnight UTC to prune completed or old games from the database. 
-- You MUST upload your `FIREBASE_SERVICE_ACCOUNT` json key as a repository secret inside GitHub for this worker process to successfully authenticate!
 
 ## Development (Local Emulator)
 To test locally without modifying your production database:

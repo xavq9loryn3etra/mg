@@ -47,6 +47,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     final name = _createNameController.text.trim();
     if (name.isEmpty) {
       if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Please enter your host name')),
         );
@@ -62,10 +63,10 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
         context.go('/lobby/$code');
       }
     } catch (e) {
-      if (mounted)
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(e.toString())));
+      if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
+        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.toString())));
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -77,6 +78,7 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     
     if (name.isEmpty || code.isEmpty) {
       if (mounted) {
+        ScaffoldMessenger.of(context).clearSnackBars();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Please enter both name and room code')),
         );
@@ -126,100 +128,121 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
     }
 
     return GamifiedScreen(
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'MAFIA GO',
-                style: theme.textTheme.displayLarge?.copyWith(
-                  letterSpacing: 8,
-                ),
-                textAlign: TextAlign.center,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            physics: const ClampingScrollPhysics(),
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                minHeight: constraints.maxHeight,
               ),
-              const SizedBox(height: 16),
-
-              // CREATE ROOM CARD
-              GlassCard(
+              child: Padding(
+                padding: const EdgeInsets.all(24.0),
                 child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     Text(
-                      'HOST A NEW GAME',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: AppTheme.accent,
+                      'MAFIA GO',
+                      style: theme.textTheme.displayLarge?.copyWith(
+                        letterSpacing: 8,
                       ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 16),
-                    TextField(
-                      controller: _createNameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Your Host Name',
-                        prefixIcon: Icon(Icons.person, color: Colors.white70),
+                    
+                    // CREATE ROOM CARD
+                    GlassCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            'HOST A NEW GAME',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: AppTheme.accent,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 16),
+                          TextField(
+                            controller: _createNameController,
+                            decoration: const InputDecoration(
+                              labelText: 'Your Host Name',
+                              prefixIcon: Icon(Icons.person, color: Colors.white70),
+                            ),
+                            textInputAction: TextInputAction.next,
+                          ),
+                          const SizedBox(height: 24),
+                          GameButton(
+                            icon: Icons.add_circle_outline,
+                            onPressed: _isLoading ? null : _createRoom,
+                            label: 'CREATE ROOM',
+                            type: GameButtonType.primary,
+                          ),
+                        ],
                       ),
-                      textInputAction: TextInputAction.next,
+                    ),
+                    const SizedBox(height: 16),
+                    
+                    // JOIN ROOM CARD
+                    GlassCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          Text(
+                            'JOIN EXISTING GAME',
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              color: AppTheme.success,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                          const SizedBox(height: 16),
+                          TextField(
+                            controller: _joinNameController,
+                            decoration: const InputDecoration(
+                              labelText: 'Your Player Name',
+                              prefixIcon: Icon(Icons.person_outline, color: Colors.white70),
+                            ),
+                            textInputAction: TextInputAction.next,
+                          ),
+                          const SizedBox(height: 16),
+                          TextField(
+                            controller: _roomCodeController,
+                            decoration: const InputDecoration(
+                              labelText: 'Room Code (e.g. ABCDE)',
+                              prefixIcon: Icon(Icons.meeting_room, color: Colors.white70),
+                            ),
+                            textCapitalization: TextCapitalization.characters,
+                            maxLength: 5,
+                          ),
+                          const SizedBox(height: 16),
+                          GameButton(
+                            icon: Icons.login,
+                            onPressed: _isLoading ? null : _joinRoom,
+                            label: 'JOIN ROOM',
+                            type: GameButtonType.success,
+                          ),
+                        ],
+                      ),
                     ),
                     const SizedBox(height: 24),
-                    GameButton(
-                      icon: Icons.add_circle_outline,
-                      onPressed: _isLoading ? null : _createRoom,
-                      label: 'CREATE ROOM',
-                      type: GameButtonType.primary,
+                    Center(
+                      child: TextButton.icon(
+                        onPressed: () => context.push('/tutorial'),
+                        icon: const Icon(Icons.help_outline, size: 18),
+                        label: const Text('How to Play'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: Colors.white54,
+                        ),
+                      ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 16),
-
-              // JOIN ROOM CARD
-              GlassCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      'JOIN EXISTING GAME',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: AppTheme.success,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _joinNameController,
-                      decoration: const InputDecoration(
-                        labelText: 'Your Player Name',
-                        prefixIcon: Icon(Icons.person_outline, color: Colors.white70),
-                      ),
-                      textInputAction: TextInputAction.next,
-                    ),
-                    const SizedBox(height: 16),
-                    TextField(
-                      controller: _roomCodeController,
-                      decoration: const InputDecoration(
-                        labelText: 'Room Code (e.g. ABCDE)',
-                        prefixIcon: Icon(Icons.meeting_room, color: Colors.white70),
-                      ),
-                      textCapitalization: TextCapitalization.characters,
-                      maxLength: 5,
-                    ),
-                    const SizedBox(height: 16),
-                    GameButton(
-                      icon: Icons.login,
-                      onPressed: _isLoading ? null : _joinRoom,
-                      label: 'JOIN ROOM',
-                      type: GameButtonType.success,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
-    );
-  }
-}
+    ); // Closes GamifiedScreen
+} // Closes build method
+} // Closes class

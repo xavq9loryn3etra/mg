@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'room_provider.dart';
 import 'player_provider.dart';
 import 'auth_provider.dart';
+import 'package:firebase_database/firebase_database.dart';
 
 part 'game_provider.g.dart';
 
@@ -28,3 +29,17 @@ bool isMyTurn(IsMyTurnRef ref) {
 
   return room.activeRole == myPlayer.role;
 }
+
+final mafiaTeamProvider = StreamProvider.autoDispose<Map<String, String>>((ref) {
+  final roomCode = ref.watch(currentRoomCodeProvider);
+  if (roomCode == null) return const Stream.empty();
+  
+  // We can't easily import firebase database without messing up dependencies here,
+  // wait, game_service.dart uses it. Let's just import it at the top of game_provider.
+  // Actually, I'll put the import in the next replacement chunk.
+  return FirebaseDatabase.instance.ref('mafia_teams/$roomCode').onValue.map((event) {
+    if (event.snapshot.value == null) return {};
+    final map = event.snapshot.value as Map<dynamic, dynamic>;
+    return map.map((k, v) => MapEntry(k.toString(), v.toString()));
+  });
+});

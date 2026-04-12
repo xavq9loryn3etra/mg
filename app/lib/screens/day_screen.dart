@@ -30,6 +30,43 @@ class _DayScreenState extends ConsumerState<DayScreen> {
     });
   }
 
+  void _showExitConfirmation(BuildContext context, bool isHost) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text(isHost ? 'Terminate Game?' : 'Leave Game?', style: Theme.of(context).textTheme.displayMedium),
+        content: Text(
+          isHost 
+            ? 'Are you sure? This will terminate the room for everyone.' 
+            : 'Are you sure you want to leave this game?',
+          style: Theme.of(context).textTheme.titleLarge,
+          textAlign: TextAlign.center,
+        ),
+        actions: [
+          GameButton(
+            label: 'CANCEL',
+            type: GameButtonType.warning,
+            onPressed: () => Navigator.of(ctx).pop(),
+          ),
+          GameButton(
+            label: isHost ? 'TERMINATE' : 'LEAVE',
+            type: GameButtonType.primary,
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              if (isHost) {
+                await _gameService.terminateRoom(widget.roomCode);
+              }
+              await _gameService.leaveSession();
+              if (context.mounted) {
+                context.go('/');
+              }
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final roomCode = widget.roomCode;
@@ -52,6 +89,12 @@ class _DayScreenState extends ConsumerState<DayScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.exit_to_app, color: AppTheme.danger),
+            onPressed: () => _showExitConfirmation(context, isHost),
+          ),
+        ],
       ),
       child: roomAsync.when(
           data: (room) {
@@ -133,6 +176,7 @@ class _DayScreenState extends ConsumerState<DayScreen> {
                                   try {
                                     await _gameService.submitVote(roomCode, alivePlayers[index].id);
                                     if (context.mounted) {
+                                      ScaffoldMessenger.of(context).clearSnackBars();
                                       ScaffoldMessenger.of(context).showSnackBar(
                                         const SnackBar(content: Text('Vote cast!'), backgroundColor: AppTheme.primary),
                                       );

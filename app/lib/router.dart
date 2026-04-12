@@ -11,6 +11,8 @@ import 'screens/night_screen.dart';
 import 'screens/day_screen.dart';
 import 'screens/game_over_screen.dart';
 import 'screens/waiting_screen.dart';
+import 'screens/tutorial_screen.dart';
+import 'providers/app_provider.dart';
 
 /// Dramatic fade + scale transition for major phase changes
 CustomTransitionPage<void> _buildTransition({
@@ -49,9 +51,10 @@ CustomTransitionPage<void> _buildTransition({
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
+  final hasSeenTutorial = ref.watch(tutorialSeenProvider);
 
   return GoRouter(
-    initialLocation: '/',
+    initialLocation: hasSeenTutorial ? '/' : '/tutorial',
     redirect: (context, state) {
       final isLoading = authState.isLoading;
 
@@ -60,6 +63,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null; // For simplicity, let guards handle logic in screens or here
     },
     routes: [
+      GoRoute(
+        path: '/tutorial',
+        pageBuilder: (context, state) => _buildTransition(
+          key: state.pageKey,
+          child: const TutorialScreen(),
+          slideUp: true,
+        ),
+      ),
       GoRoute(
         path: '/',
         pageBuilder: (context, state) => _buildTransition(

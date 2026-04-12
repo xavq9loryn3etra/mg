@@ -4,8 +4,10 @@ import 'package:go_router/go_router.dart';
 import '../providers/player_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/room_provider.dart';
+import '../services/game_service.dart';
 import '../widgets/gamified_screen.dart';
 import '../widgets/glass_card.dart';
+import '../widgets/game_button.dart';
 import '../theme.dart';
 
 class WaitingScreen extends ConsumerStatefulWidget {
@@ -18,12 +20,46 @@ class WaitingScreen extends ConsumerStatefulWidget {
 }
 
 class _WaitingScreenState extends ConsumerState<WaitingScreen> {
+  final _gameService = GameService();
+
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(currentRoomCodeProvider.notifier).setCode(widget.roomCode);
     });
+  }
+
+  void _showExitConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: Text('Leave Game?', style: Theme.of(context).textTheme.displayMedium),
+        content: Text(
+          'Are you sure you want to cancel your join request?',
+          style: Theme.of(context).textTheme.titleLarge,
+          textAlign: TextAlign.center,
+        ),
+        actions: [
+          GameButton(
+            label: 'CANCEL',
+            type: GameButtonType.warning,
+            onPressed: () => Navigator.of(ctx).pop(),
+          ),
+          GameButton(
+            label: 'LEAVE',
+            type: GameButtonType.primary,
+            onPressed: () async {
+              Navigator.of(ctx).pop();
+              await _gameService.leaveSession();
+              if (context.mounted) {
+                context.go('/');
+              }
+            },
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -49,6 +85,7 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen> {
           // The router guard might handle this if our session got deleted, but let's be safe:
           final players = ref.read(playerNamesProvider).value;
           if (players != null && !players.containsKey(uid)) {
+            ScaffoldMessenger.of(context).clearSnackBars();
             ScaffoldMessenger.of(context).showSnackBar(
               const SnackBar(content: Text('Your request to join was rejected.')),
             );
@@ -59,6 +96,18 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen> {
     });
 
     return GamifiedScreen(
+      appBar: AppBar(
+        title: Text('JOINING...', style: theme.textTheme.displayMedium),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.exit_to_app, color: AppTheme.danger),
+            onPressed: () => _showExitConfirmation(context),
+          ),
+        ],
+      ),
       child: Center(
         child: Padding(
           padding: const EdgeInsets.all(24.0),

@@ -18,13 +18,17 @@ class GamifiedScreen extends StatelessWidget {
       systemNavigationBarIconBrightness: Brightness.light,
     ));
 
-    return Container(
-      decoration: AppTheme.bgGradient,
-      child: Scaffold(
-        resizeToAvoidBottomInset: false,
-        backgroundColor: Colors.transparent,
-        appBar: appBar,
-        body: SafeArea(child: child),
+    return GestureDetector(
+      onTap: () => FocusManager.instance.primaryFocus?.unfocus(),
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        decoration: AppTheme.bgGradient,
+        child: Scaffold(
+          resizeToAvoidBottomInset: true,
+          backgroundColor: Colors.transparent,
+          appBar: appBar,
+          body: SafeArea(child: child),
+        ),
       ),
     );
   }

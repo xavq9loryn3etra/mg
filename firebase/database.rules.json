@@ -1,6 +1,12 @@
 {
   "rules": {
     ".read": "auth != null",
-    ".write": "auth != null"
+    ".write": "auth != null",
+    "mafia_teams": {
+      "$roomCode": {
+        ".read": "auth != null && (root.child('players/' + $roomCode + '/' + auth.uid + '/role').val() === 'mafia' || root.child('players/' + $roomCode + '/' + auth.uid + '/role').val() === 'godfather')",
+        ".write": "auth != null"
+      }
+    }
   }
 }

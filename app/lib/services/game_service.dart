@@ -65,7 +65,14 @@ class GameService {
       'activeRole': null,
       'morningAnnouncement': null,
       'winner': null,
-      'config': {'mafiaCount': 1, 'hasRabidDog': false},
+      'config': {
+        'hasMafia1': true,
+        'hasMafia2': true,
+        'hasDoctor': true,
+        'hasGodfather': true,
+        'hasDetective': true,
+        'hasRabidDog': true,
+      },
       'lastActive': timestamp,
     });
 
@@ -159,10 +166,14 @@ class GameService {
 
   /// Update game configuration (mafia count, rabid dog toggle).
   Future<void> configureGame(
-    String roomCode,
-    int mafiaCount,
-    bool hasRabidDog,
-  ) async {
+    String roomCode, {
+    required bool hasMafia1,
+    required bool hasMafia2,
+    required bool hasDoctor,
+    required bool hasGodfather,
+    required bool hasDetective,
+    required bool hasRabidDog,
+  }) async {
     final uid = _uid;
     if (uid == null) throw Exception('Must be logged in.');
     if (roomCode.isEmpty) throw Exception('roomCode required.');
@@ -174,7 +185,11 @@ class GameService {
     if (room['status'] != 'lobby') throw Exception('Game already started.');
 
     await _db.ref('rooms/$roomCode/config').update({
-      'mafiaCount': mafiaCount,
+      'hasMafia1': hasMafia1,
+      'hasMafia2': hasMafia2,
+      'hasDoctor': hasDoctor,
+      'hasGodfather': hasGodfather,
+      'hasDetective': hasDetective,
       'hasRabidDog': hasRabidDog,
     });
   }
@@ -195,26 +210,18 @@ class GameService {
     final players = (playersSnap.value as Map<dynamic, dynamic>?) ?? {};
     final playerIds = players.keys.cast<String>().toList();
 
-    final config =
-        (room['config'] as Map<dynamic, dynamic>?) ??
-        {'mafiaCount': 1, 'hasRabidDog': false};
-    final mafiaCount = (config['mafiaCount'] as int?) ?? 1;
-    final hasRabidDog = (config['hasRabidDog'] as bool?) ?? false;
-
-    // Godfather + Doctor + Detective + mafia + (optional rabid dog) + at least 1 villager
-    var requiredCount = 1 + 1 + 1 + mafiaCount + 1;
-    if (hasRabidDog) requiredCount++;
-
-    // if (playerIds.length < requiredCount) {
-    //   throw Exception('Need at least $requiredCount players based on config.');
-    // }
-
+    final config = (room['config'] as Map<dynamic, dynamic>?) ?? {};
+    
     // Build role list
-    final roles = <String>['godfather', 'doctor', 'detective'];
-    for (var i = 0; i < mafiaCount; i++) {
-      roles.add('mafia');
-    }
-    if (hasRabidDog) roles.add('rabid_dog');
+    final roles = <String>[];
+    if (config['hasGodfather'] ?? true) roles.add('godfather');
+    if (config['hasDoctor'] ?? true) roles.add('doctor');
+    if (config['hasDetective'] ?? true) roles.add('detective');
+    if (config['hasMafia1'] ?? true) roles.add('mafia');
+    if (config['hasMafia2'] ?? true) roles.add('mafia');
+    if (config['hasRabidDog'] ?? false) roles.add('rabid_dog');
+
+    // Fill the rest with villagers
     while (roles.length < playerIds.length) {
       roles.add('villager');
     }
@@ -244,6 +251,14 @@ class GameService {
     updates['rooms/$roomCode/activeRole'] = null;
     updates['rooms/$roomCode/morningAnnouncement'] = 'The first night begins.';
     updates['rooms/$roomCode/lastActive'] = ServerValue.timestamp;
+
+    // Extract mafia/godfather to a separate node for frontend filtering
+    for (var i = 0; i < playerIds.length; i++) {
+      final role = roles[i];
+      if (role == 'mafia' || role == 'godfather') {
+        updates['mafia_teams/$roomCode/${playerIds[i]}'] = role;
+      }
+    }
 
     for (var entry in updates.entries) {
       await _db.ref(entry.key).set(entry.value);
@@ -622,5 +637,31 @@ class GameService {
         'winner': 'mafia',
       });
     }
+  }
+
+  /// Clear the current user's session so they don't auto-reconnect to the room.
+  Future<void> leaveSession() async {
+    final uid = _uid;
+    if (uid == null) return;
+    await _db.ref('user_sessions/$uid').remove();
+  }
+
+  /// Terminate the room for everyone. Sets status to 'game_over'.
+  Future<void> terminateRoom(String roomCode) async {
+    final uid = _uid;
+    if (uid == null) throw Exception('Must be logged in.');
+
+    final roomSnap = await _db.ref('rooms/$roomCode').get();
+    if (!roomSnap.exists) return;
+    
+    final roomData = roomSnap.value as Map<dynamic, dynamic>;
+    if (roomData['hostId'] != uid) {
+      throw Exception('Only the Host can terminate the room.');
+    }
+
+    await _db.ref('rooms/$roomCode').update({
+      'status': 'game_over',
+      'lastActive': ServerValue.timestamp,
+    });
   }
 }
