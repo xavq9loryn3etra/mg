@@ -5,7 +5,7 @@ const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
-  databaseURL: `https://${serviceAccount.project_id}-default-rtdb.firebaseio.com` // Ensure correct region if not us-central
+  databaseURL: `https://${serviceAccount.project_id}-default-rtdb.asia-southeast1.firebasedatabase.app`
 });
 
 const db = admin.database();
@@ -41,12 +41,15 @@ async function cleanupOldRooms() {
     
     if (shouldDelete) {
       try {
-        // Delete the room and all its associated data
-        await db.ref(`rooms/${roomCode}`).remove();
-        await db.ref(`players/${roomCode}`).remove();
-        await db.ref(`player_names/${roomCode}`).remove();
-        await db.ref(`pending_players/${roomCode}`).remove();
-        await db.ref(`night_actions/${roomCode}`).remove();
+        // Delete the room and all its associated data in parallel
+        await Promise.all([
+          db.ref(`rooms/${roomCode}`).remove(),
+          db.ref(`players/${roomCode}`).remove(),
+          db.ref(`player_names/${roomCode}`).remove(),
+          db.ref(`pending_players/${roomCode}`).remove(),
+          db.ref(`night_actions/${roomCode}`).remove(),
+          db.ref(`mafia_teams/${roomCode}`).remove(),
+        ]);
         
         console.log(`Successfully deleted data for room: ${roomCode}`);
         deletedCount++;
