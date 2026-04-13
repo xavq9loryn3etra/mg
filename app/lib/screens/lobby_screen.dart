@@ -5,6 +5,7 @@ import '../providers/room_provider.dart';
 import '../providers/player_provider.dart';
 import '../providers/game_provider.dart';
 import '../services/game_service.dart';
+import '../providers/audio_provider.dart';
 import '../widgets/gamified_screen.dart';
 import '../widgets/game_button.dart';
 import '../widgets/glass_card.dart';
@@ -40,6 +41,8 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      // Stop background music when entering a lobby/game
+      ref.read(soundServiceProvider).stop();
       ref.read(currentRoomCodeProvider.notifier).setCode(widget.roomCode);
     });
   }

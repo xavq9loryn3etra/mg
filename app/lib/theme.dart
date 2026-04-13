@@ -91,6 +91,13 @@ class AppTheme {
         titleTextStyle: GoogleFonts.lilitaOne(fontSize: 24, color: textMain),
         contentTextStyle: GoogleFonts.nunito(fontSize: 18, color: textMain, fontWeight: FontWeight.bold),
       ),
+      pageTransitionsTheme: const PageTransitionsTheme(
+        builders: {
+          TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
+          TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+          TargetPlatform.windows: FadeUpwardsPageTransitionsBuilder(),
+        },
+      ),
     );
   }
 }

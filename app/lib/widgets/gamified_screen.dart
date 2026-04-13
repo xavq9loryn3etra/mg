@@ -5,17 +5,27 @@ import '../theme.dart';
 class GamifiedScreen extends StatelessWidget {
   final Widget child;
   final PreferredSizeWidget? appBar;
+  final Widget? drawer;
 
-  const GamifiedScreen({super.key, required this.child, this.appBar});
+  const GamifiedScreen({
+    super.key,
+    required this.child,
+    this.appBar,
+    this.drawer,
+  });
 
   @override
   Widget build(BuildContext context) {
-    // Make system bars transparent so gradient flows edge-to-edge
+    // Re-assert immersive mode on every build to keep the app full-screen
+    SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky);
+    
+    // Explicitly set system overlays to transparent
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
       statusBarIconBrightness: Brightness.light,
       systemNavigationBarColor: Colors.transparent,
       systemNavigationBarIconBrightness: Brightness.light,
+      systemNavigationBarDividerColor: Colors.transparent,
     ));
 
     return GestureDetector(
@@ -26,8 +36,14 @@ class GamifiedScreen extends StatelessWidget {
         child: Scaffold(
           resizeToAvoidBottomInset: true,
           backgroundColor: Colors.transparent,
+          extendBodyBehindAppBar: true, 
+          extendBody: true,
           appBar: appBar,
-          body: SafeArea(child: child),
+          drawer: drawer,
+          body: SafeArea(
+            // Protect content while allowing background to bleed
+            child: child,
+          ),
         ),
       ),
     );

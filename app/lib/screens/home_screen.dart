@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../services/game_service.dart';
@@ -6,6 +7,9 @@ import '../providers/room_provider.dart';
 import '../widgets/gamified_screen.dart';
 import '../widgets/game_button.dart';
 import '../widgets/glass_card.dart';
+import '../widgets/room_code_input.dart';
+import '../widgets/settings_hud.dart';
+import '../providers/audio_provider.dart';
 import '../theme.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {
@@ -19,29 +23,18 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   final _createNameController = TextEditingController();
   final _joinNameController = TextEditingController();
   final _roomCodeController = TextEditingController();
+  final _roomCodeInputKey = GlobalKey<RoomCodeInputState>();
+  
   final _gameService = GameService();
-  bool _isLoading = true; // start loading while checking session
+  bool _isLoading = false; 
+  bool _isSettingsOpen = false; 
 
   @override
   void initState() {
     super.initState();
-    _checkSession();
   }
 
-  Future<void> _checkSession() async {
-    try {
-      final code = await _gameService.checkActiveSession();
-      if (code != null && mounted) {
-        ref.read(currentRoomCodeProvider.notifier).setCode(code);
-        context.go('/lobby/$code');
-        return;
-      }
-    } catch (e) {
-      debugPrint("Session check failed: $e");
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
+
 
   Future<void> _createRoom() async {
     final name = _createNameController.text.trim();
@@ -119,40 +112,27 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
   Widget build(BuildContext context) {
     var theme = Theme.of(context);
     
-    if (_isLoading) {
-      return const GamifiedScreen(
-        child: Center(
-          child: CircularProgressIndicator(color: AppTheme.accent),
-        ),
-      );
-    }
-
     return GamifiedScreen(
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            physics: const ClampingScrollPhysics(),
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight: constraints.maxHeight,
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(24.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Text(
-                      'MAFIA GO',
-                      style: theme.textTheme.displayLarge?.copyWith(
-                        letterSpacing: 8,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    
-                    // CREATE ROOM CARD
-                    GlassCard(
+      child: Stack(
+        children: [
+          LayoutBuilder(
+            builder: (context, constraints) {
+              return SingleChildScrollView(
+                physics: const ClampingScrollPhysics(),
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minHeight: constraints.maxHeight,
+                  ),
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(24.0, 60.0, 24.0, 24.0), // Extra top padding for title
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        const SizedBox(height: 50),
+                        
+                        // CREATE ROOM CARD
+                        GlassCard(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
@@ -185,57 +165,62 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
                     const SizedBox(height: 16),
                     
                     // JOIN ROOM CARD
-                    GlassCard(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Text(
-                            'JOIN EXISTING GAME',
-                            style: theme.textTheme.titleMedium?.copyWith(
-                              color: AppTheme.success,
+                    GestureDetector(
+                      onTap: () {
+                        // Auto-focus the first box when tapping anywhere in the card
+                        _roomCodeInputKey.currentState?.focusFirst();
+                      },
+                      child: GlassCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Text(
+                              'JOIN EXISTING GAME',
+                              style: theme.textTheme.titleMedium?.copyWith(
+                                color: AppTheme.success,
+                              ),
+                              textAlign: TextAlign.center,
                             ),
-                            textAlign: TextAlign.center,
-                          ),
-                          const SizedBox(height: 16),
-                          TextField(
-                            controller: _joinNameController,
-                            decoration: const InputDecoration(
-                              labelText: 'Your Player Name',
-                              prefixIcon: Icon(Icons.person_outline, color: Colors.white70),
+                            const SizedBox(height: 16),
+                            TextField(
+                              controller: _joinNameController,
+                              decoration: const InputDecoration(
+                                labelText: 'Your Player Name',
+                                prefixIcon: Icon(Icons.person_outline, color: Colors.white70),
+                              ),
+                              textInputAction: TextInputAction.next,
                             ),
-                            textInputAction: TextInputAction.next,
-                          ),
-                          const SizedBox(height: 16),
-                          TextField(
-                            controller: _roomCodeController,
-                            decoration: const InputDecoration(
-                              labelText: 'Room Code (e.g. ABCDE)',
-                              prefixIcon: Icon(Icons.meeting_room, color: Colors.white70),
+                            const SizedBox(height: 16),
+                            Center(
+                              child: Text(
+                                'ROOM CODE',
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: AppTheme.accent,
+                                  fontWeight: FontWeight.w900,
+                                  letterSpacing: 2,
+                                ),
+                              ),
                             ),
-                            textCapitalization: TextCapitalization.characters,
-                            maxLength: 5,
-                          ),
-                          const SizedBox(height: 16),
-                          GameButton(
-                            icon: Icons.login,
-                            onPressed: _isLoading ? null : _joinRoom,
-                            label: 'JOIN ROOM',
-                            type: GameButtonType.success,
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    Center(
-                      child: TextButton.icon(
-                        onPressed: () => context.push('/tutorial'),
-                        icon: const Icon(Icons.help_outline, size: 18),
-                        label: const Text('How to Play'),
-                        style: TextButton.styleFrom(
-                          foregroundColor: Colors.white54,
+                            const SizedBox(height: 8),
+                            RoomCodeInput(
+                              key: _roomCodeInputKey,
+                              controller: _roomCodeController,
+                              onCodeChanged: (code) {
+                                // Already handled sync in the widget
+                              },
+                            ),
+                            const SizedBox(height: 16),
+                            GameButton(
+                              icon: Icons.login,
+                              onPressed: _isLoading ? null : _joinRoom,
+                              label: 'JOIN ROOM',
+                              type: GameButtonType.success,
+                            ),
+                          ],
                         ),
                       ),
                     ),
+                    const SizedBox(height: 24),
                   ],
                 ),
               ),
@@ -243,6 +228,15 @@ class _HomeScreenState extends ConsumerState<HomeScreen> {
           );
         },
       ),
-    ); // Closes GamifiedScreen
-} // Closes build method
-} // Closes class
+      
+      // SETTINGS HUD (Top Panel)
+      SettingsHUD(
+        isOpen: _isSettingsOpen, 
+        onClose: () => setState(() => _isSettingsOpen = false),
+        onToggle: () => setState(() => _isSettingsOpen = !_isSettingsOpen),
+      ),
+    ],
+  ),
+);
+  }
+}

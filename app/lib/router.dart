@@ -12,23 +12,27 @@ import 'screens/day_screen.dart';
 import 'screens/game_over_screen.dart';
 import 'screens/waiting_screen.dart';
 import 'screens/tutorial_screen.dart';
+import 'screens/entrance_wrapper.dart';
 import 'providers/app_provider.dart';
 
 /// Dramatic fade + scale transition for major phase changes
 CustomTransitionPage<void> _buildTransition({
   required LocalKey key,
   required Widget child,
-  Duration duration = const Duration(milliseconds: 500),
+  Duration? duration,
   bool slideUp = false,
 }) {
   return CustomTransitionPage<void>(
     key: key,
-    transitionDuration: duration,
+    transitionDuration: duration ?? const Duration(milliseconds: 500),
     reverseTransitionDuration: const Duration(milliseconds: 300),
     child: child,
     transitionsBuilder: (context, animation, secondaryAnimation, child) {
-      final curved = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
-      
+      final curved = CurvedAnimation(
+        parent: animation,
+        curve: Curves.easeOutCubic,
+      );
+
       if (slideUp) {
         // Slide up from bottom + fade (for lobby, reveals)
         return SlideTransition(
@@ -40,11 +44,8 @@ CustomTransitionPage<void> _buildTransition({
         );
       }
 
-      // Scale + fade (for phase transitions like night→day)
-      return ScaleTransition(
-        scale: Tween<double>(begin: 0.92, end: 1.0).animate(curved),
-        child: FadeTransition(opacity: curved, child: child),
-      );
+      // Pure fade (no scale) for the initial entrance to prevent "jumps"
+      return FadeTransition(opacity: curved, child: child);
     },
   );
 }
@@ -54,7 +55,7 @@ final routerProvider = Provider<GoRouter>((ref) {
   final hasSeenTutorial = ref.watch(tutorialSeenProvider);
 
   return GoRouter(
-    initialLocation: hasSeenTutorial ? '/' : '/tutorial',
+    initialLocation: '/',
     redirect: (context, state) {
       final isLoading = authState.isLoading;
 
@@ -63,19 +64,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       return null; // For simplicity, let guards handle logic in screens or here
     },
     routes: [
+      GoRoute(path: '/', builder: (context, state) => const EntranceWrapper()),
       GoRoute(
         path: '/tutorial',
         pageBuilder: (context, state) => _buildTransition(
           key: state.pageKey,
           child: const TutorialScreen(),
+          duration: const Duration(milliseconds: 800),
           slideUp: true,
-        ),
-      ),
-      GoRoute(
-        path: '/',
-        pageBuilder: (context, state) => _buildTransition(
-          key: state.pageKey,
-          child: const HomeScreen(),
         ),
       ),
       GoRoute(

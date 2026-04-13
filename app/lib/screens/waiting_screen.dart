@@ -116,9 +116,10 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen> {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Text(
-                'MAFIA GO',
+                'MAFIA: PURPLE TOWN',
                 style: theme.textTheme.displayLarge?.copyWith(
-                  letterSpacing: 8,
+                  fontSize: 32,
+                  letterSpacing: 3,
                 ),
                 textAlign: TextAlign.center,
               ),

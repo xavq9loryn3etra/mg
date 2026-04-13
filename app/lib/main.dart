@@ -8,6 +8,7 @@ import 'router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'providers/app_provider.dart';
+import 'providers/lifecycle_provider.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -109,10 +110,13 @@ class MafiaApp extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    // Initialize global app observers
+    ref.watch(appLifecycleProvider);
+    
     final router = ref.watch(routerProvider);
 
     return MaterialApp.router(
-      title: 'MAFIA GO',
+      title: 'Mafia: Purple Town',
       theme: AppTheme.darkTheme,
       routerConfig: router,
       debugShowCheckedModeBanner: false,

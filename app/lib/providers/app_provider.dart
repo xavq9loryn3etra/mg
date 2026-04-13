@@ -21,3 +21,6 @@ final setTutorialSeenProvider = Provider((ref) {
     ref.read(tutorialSeenProvider.notifier).state = true;
   };
 });
+
+/// Tracks if the cinematic splash sequnce has been completed during this session.
+final hasFinishedSplashProvider = StateProvider<bool>((ref) => false);

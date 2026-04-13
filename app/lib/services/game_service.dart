@@ -42,7 +42,7 @@ class GameService {
 
   /// Generate a random 5-character room code.
   String _generateRoomCode() {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     final rng = Random();
     return String.fromCharCodes(
       Iterable.generate(5, (_) => chars.codeUnitAt(rng.nextInt(chars.length))),

@@ -21,7 +21,16 @@ class NightScreen extends ConsumerStatefulWidget {
 
 class _NightScreenState extends ConsumerState<NightScreen> {
   final _gameService = GameService();
-  int _currentStep = 0;
+  int _currentStepIndex = 0;
+
+  // Define the ordered steps of the night
+  static const List<String> _allSteps = [
+    'mafia',
+    'doctor',
+    'rabid_dog',
+    'detective',
+    'morning',
+  ];
 
   @override
   void initState() {
@@ -71,6 +80,7 @@ class _NightScreenState extends ConsumerState<NightScreen> {
   @override
   Widget build(BuildContext context) {
     final roomCode = widget.roomCode;
+    final roomAsync = ref.watch(roomStreamProvider);
     final isHost = ref.watch(isNarratorProvider);
     final myPlayerAsync = ref.watch(myPlayerProvider);
     final isMyTurn = ref.watch(isMyTurnProvider);
@@ -99,112 +109,102 @@ class _NightScreenState extends ConsumerState<NightScreen> {
             ),
           ],
         ),
-        child: ListView(
-          padding: const EdgeInsets.all(24),
-          children: [
-            GlassCard(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                   Text('MAFIA', style: theme.textTheme.titleLarge?.copyWith(color: AppTheme.primary)),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(child: GameButton(label: 'WAKE', type: GameButtonType.primary, onPressed: _currentStep == 0 ? () {
-                        _gameService.advanceNightRole(roomCode, 'wake_mafia');
-                        setState(() => _currentStep = 1);
-                      } : null)),
-                      const SizedBox(width: 16),
-                      Expanded(child: GameButton(label: 'SLEEP', type: GameButtonType.warning, onPressed: _currentStep == 1 ? () {
-                        _gameService.advanceNightRole(roomCode, 'sleep_mafia');
-                        setState(() => _currentStep = 2);
-                      } : null)),
-                    ],
+        child: roomAsync.when(
+          data: (room) {
+            if (room == null) return const Center(child: Text('Room not found'));
+            final config = room.config;
+            
+            // Filter steps based on config
+            final activeSteps = _allSteps.where((step) {
+              if (step == 'mafia') return true; // Always has at least 1 mafia
+              if (step == 'doctor') return config.hasDoctor;
+              if (step == 'rabid_dog') return config.hasRabidDog;
+              if (step == 'detective') return config.hasDetective;
+              if (step == 'morning') return true;
+              return false;
+            }).toList();
+
+            final currentStepId = _currentStepIndex < activeSteps.length 
+                ? activeSteps[_currentStepIndex] 
+                : 'morning';
+
+            return ListView(
+              padding: const EdgeInsets.all(24),
+              children: [
+                // MAFIA CONTROL (Always visible)
+                if (activeSteps.contains('mafia'))
+                  _buildControlCard(
+                    theme: theme,
+                    title: 'MAFIA',
+                    color: AppTheme.primary,
+                    isCurrent: currentStepId == 'mafia',
+                    onWake: () => _gameService.advanceNightRole(roomCode, 'wake_mafia'),
+                    onSleep: () => _gameService.advanceNightRole(roomCode, 'sleep_mafia'),
+                    onDone: () => setState(() => _currentStepIndex++),
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            GlassCard(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  Text('DOCTOR', style: theme.textTheme.titleLarge?.copyWith(color: AppTheme.success)),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(child: GameButton(label: 'WAKE', type: GameButtonType.primary, onPressed: _currentStep == 2 ? () {
-                        _gameService.advanceNightRole(roomCode, 'wake_doctor');
-                        setState(() => _currentStep = 3);
-                      } : null)),
-                      const SizedBox(width: 16),
-                      Expanded(child: GameButton(label: 'SLEEP', type: GameButtonType.warning, onPressed: _currentStep == 3 ? () {
-                        _gameService.advanceNightRole(roomCode, 'sleep_doctor');
-                        setState(() => _currentStep = 4);
-                      } : null)),
-                    ],
+                
+                const SizedBox(height: 16),
+                
+                // DOCTOR CONTROL
+                if (activeSteps.contains('doctor'))
+                  _buildControlCard(
+                    theme: theme,
+                    title: 'DOCTOR',
+                    color: AppTheme.success,
+                    isCurrent: currentStepId == 'doctor',
+                    onWake: () => _gameService.advanceNightRole(roomCode, 'wake_doctor'),
+                    onSleep: () => _gameService.advanceNightRole(roomCode, 'sleep_doctor'),
+                    onDone: () => setState(() => _currentStepIndex++),
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            GlassCard(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  Text('RABID DOG', style: theme.textTheme.titleLarge?.copyWith(color: AppTheme.accent)),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(child: GameButton(label: 'WAKE', type: GameButtonType.primary, onPressed: _currentStep == 4 ? () {
-                        _gameService.advanceNightRole(roomCode, 'wake_rabid_dog');
-                        setState(() => _currentStep = 5);
-                      } : null)),
-                      const SizedBox(width: 16),
-                      Expanded(child: GameButton(label: 'SLEEP', type: GameButtonType.warning, onPressed: _currentStep == 5 ? () {
-                        _gameService.advanceNightRole(roomCode, 'sleep_rabid_dog');
-                        setState(() => _currentStep = 6);
-                      } : null)),
-                    ],
+                  
+                const SizedBox(height: 16),
+
+                // RABID DOG CONTROL
+                if (activeSteps.contains('rabid_dog'))
+                  _buildControlCard(
+                    theme: theme,
+                    title: 'RABID DOG',
+                    color: AppTheme.accent,
+                    isCurrent: currentStepId == 'rabid_dog',
+                    onWake: () => _gameService.advanceNightRole(roomCode, 'wake_rabid_dog'),
+                    onSleep: () => _gameService.advanceNightRole(roomCode, 'sleep_rabid_dog'),
+                    onDone: () => setState(() => _currentStepIndex++),
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-            GlassCard(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                children: [
-                  Text('DETECTIVE', style: theme.textTheme.titleLarge?.copyWith(color: Colors.blueAccent)),
-                  const SizedBox(height: 16),
-                  Row(
-                    children: [
-                      Expanded(child: GameButton(label: 'WAKE', type: GameButtonType.primary, onPressed: _currentStep == 6 ? () {
-                        _gameService.advanceNightRole(roomCode, 'wake_detective');
-                        setState(() => _currentStep = 7);
-                      } : null)),
-                      const SizedBox(width: 16),
-                      Expanded(child: GameButton(label: 'SLEEP', type: GameButtonType.warning, onPressed: _currentStep == 7 ? () {
-                        _gameService.advanceNightRole(roomCode, 'sleep_detective');
-                        setState(() => _currentStep = 8);
-                      } : null)),
-                    ],
+
+                const SizedBox(height: 16),
+
+                // DETECTIVE CONTROL
+                if (activeSteps.contains('detective'))
+                  _buildControlCard(
+                    theme: theme,
+                    title: 'DETECTIVE',
+                    color: Colors.blueAccent,
+                    isCurrent: currentStepId == 'detective',
+                    onWake: () => _gameService.advanceNightRole(roomCode, 'wake_detective'),
+                    onSleep: () => _gameService.advanceNightRole(roomCode, 'sleep_detective'),
+                    onDone: () => setState(() => _currentStepIndex++),
                   ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 32),
-            GameButton(
-              label: 'REVEAL MORNING',
-              icon: Icons.wb_sunny,
-              type: GameButtonType.success,
-              onPressed: _currentStep == 8 ? () => _gameService.revealMorning(roomCode) : null,
-            ),
-            const SizedBox(height: 32),
-          ],
+
+                const SizedBox(height: 32),
+                
+                GameButton(
+                  label: 'REVEAL MORNING',
+                  icon: Icons.wb_sunny,
+                  type: GameButtonType.success,
+                  onPressed: currentStepId == 'morning' 
+                      ? () => _gameService.revealMorning(roomCode) 
+                      : null,
+                ),
+                const SizedBox(height: 32),
+              ],
+            );
+          },
+          loading: () => const MafiaLoader(message: 'Loading control...'),
+          error: (e, st) => Center(child: Text('Error: $e')),
         ),
       );
     }
+
 
     return GamifiedScreen(
       appBar: AppBar(
@@ -354,6 +354,50 @@ class _NightScreenState extends ConsumerState<NightScreen> {
           loading: () => const MafiaLoader(message: 'Loading...'),
           error: (e, st) => Center(child: Text('Error: $e')),
         ),
+    );
+  }
+
+  Widget _buildControlCard({
+    required ThemeData theme,
+    required String title,
+    required Color color,
+    required bool isCurrent,
+    required VoidCallback onWake,
+    required VoidCallback onSleep,
+    required VoidCallback onDone,
+  }) {
+    return GlassCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          Text(title, style: theme.textTheme.titleLarge?.copyWith(color: color)),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: GameButton(
+                  label: 'WAKE',
+                  type: GameButtonType.primary,
+                  onPressed: isCurrent ? onWake : null,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: GameButton(
+                  label: 'SLEEP',
+                  type: GameButtonType.warning,
+                  onPressed: isCurrent ? onSleep : null,
+                ),
+              ),
+              const SizedBox(width: 12),
+              IconButton(
+                icon: const Icon(Icons.check_circle_outline, color: AppTheme.success),
+                onPressed: isCurrent ? onDone : null,
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 }
