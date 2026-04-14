@@ -1,0 +1,39 @@
+workflows:
+  android-internal:
+    name: Mafia Purple Town Android Internal
+    max_build_duration: 60
+    instance_type: mac_mini_m1
+    environment:
+      groups:
+        - google_play # Variable group for GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        - android_signing # Variable group for CM_KEYSTORE, CM_KEYSTORE_PASSWORD, CM_KEY_ALIAS, CM_KEY_PASSWORD
+      vars:
+        PACKAGE_NAME: "com.purpletown.mjlabs"
+        FLUTTER_VERSION: "stable"
+      flutter: stable
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
+    scripts:
+      - name: Set up local.properties
+        script: |
+          echo "flutter.sdk=$FLUTTER_ROOT" > app/android/local.properties
+      - name: Get Flutter packages
+        script: |
+          cd app && flutter packages pub get
+      - name: Build Android App Bundle
+        script: |
+          cd app && flutter build appbundle --release \
+            --build-name=1.0.0 \
+            --build-number=$BUILD_NUMBER
+    artifacts:
+      - app/build/app/outputs/bundle/release/*.aab
+    publishing:
+      google_play:
+        credentials: $GCLOUD_SERVICE_ACCOUNT_CREDENTIALS
+        track: internal
+        submit_as_draft: false

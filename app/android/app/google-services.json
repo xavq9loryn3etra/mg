@@ -1,9 +1,9 @@
 {
   "project_info": {
     "project_number": "422786565458",
+    "firebase_url": "https://mafia-multiplayer-e96c4-default-rtdb.asia-southeast1.firebasedatabase.app",
     "project_id": "mafia-multiplayer-e96c4",
-    "storage_bucket": "mafia-multiplayer-e96c4.firebasestorage.app",
-    "firebase_url": "https://mafia-multiplayer-e96c4-default-rtdb.asia-southeast1.firebasedatabase.app"
+    "storage_bucket": "mafia-multiplayer-e96c4.firebasestorage.app"
   },
   "client": [
     {
@@ -11,6 +11,25 @@
         "mobilesdk_app_id": "1:422786565458:android:a18cdab8727ac36dbd668b",
         "android_client_info": {
           "package_name": "com.mafia.mafia_app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAxFBkLSWxCdLzqyjLbY1fZe4psgnzfn-s"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:422786565458:android:9780030fa328144cbd668b",
+        "android_client_info": {
+          "package_name": "com.purpletown.mjlabs"
         }
       },
       "oauth_client": [],

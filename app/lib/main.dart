@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:mafia_app/firebase_options.dart';
+import 'package:mafia_purple_town/firebase_options.dart';
 import 'theme.dart';
 import 'router.dart';
 import 'package:firebase_auth/firebase_auth.dart';

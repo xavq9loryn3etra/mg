@@ -1,4 +1,4 @@
-package com.mafia.mafia_app
+package com.purpletown.mjlabs
 
 import io.flutter.embedding.android.FlutterActivity
 

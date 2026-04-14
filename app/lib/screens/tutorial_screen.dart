@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import 'package:mafia_app/theme.dart';
+import 'package:mafia_purple_town/theme.dart';
 import '../providers/app_provider.dart';
 
 class TutorialScreen extends ConsumerStatefulWidget {

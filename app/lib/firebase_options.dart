@@ -51,7 +51,7 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions android = FirebaseOptions(
     apiKey: 'AIzaSyAxFBkLSWxCdLzqyjLbY1fZe4psgnzfn-s',
-    appId: '1:422786565458:android:a18cdab8727ac36dbd668b',
+    appId: '1:422786565458:android:9780030fa328144cbd668b',
     messagingSenderId: '422786565458',
     projectId: 'mafia-multiplayer-e96c4',
     storageBucket: 'mafia-multiplayer-e96c4.firebasestorage.app',
@@ -61,11 +61,11 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyBZ-WVIVnU1tUpcfWkcH25WRxs368TEnLE',
-    appId: '1:422786565458:ios:246cfc26327c6200bd668b',
+    appId: '1:422786565458:ios:d86c080134464102bd668b',
     messagingSenderId: '422786565458',
     projectId: 'mafia-multiplayer-e96c4',
     storageBucket: 'mafia-multiplayer-e96c4.firebasestorage.app',
-    iosBundleId: 'com.mafia.mafiaApp',
+    iosBundleId: 'com.purpletown.mjlabs',
     databaseURL:
         'https://mafia-multiplayer-e96c4-default-rtdb.asia-southeast1.firebasedatabase.app',
   );
