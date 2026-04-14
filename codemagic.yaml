@@ -19,6 +19,18 @@ workflows:
           include: true
           source: true
     scripts:
+      - name: Set up code signing
+        script: |
+          # Decode Keystore
+          echo $CM_KEYSTORE | base64 --decode > app/android/app/upload-keystore.jks
+          
+          # Create key.properties
+          cat >> app/android/key.properties <<EOF
+          storePassword=$CM_KEYSTORE_PASSWORD
+          keyPassword=$CM_KEY_PASSWORD
+          keyAlias=$CM_KEY_ALIAS
+          storeFile=upload-keystore.jks
+          EOF
       - name: Set up local.properties
         script: |
           echo "flutter.sdk=$FLUTTER_ROOT" > app/android/local.properties

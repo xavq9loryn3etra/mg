@@ -24,10 +24,19 @@ android {
 
     signingConfigs {
         create("release") {
-            keyAlias = keystoreProperties.getProperty("keyAlias")
-            keyPassword = keystoreProperties.getProperty("keyPassword")
-            storeFile = keystoreProperties.getProperty("storeFile")?.let { file(it) }
-            storePassword = keystoreProperties.getProperty("storePassword")
+            val keyAliasStr = keystoreProperties.getProperty("keyAlias")
+            val keyPasswordStr = keystoreProperties.getProperty("keyPassword")
+            val storeFileStr = keystoreProperties.getProperty("storeFile")
+            val storePasswordStr = keystoreProperties.getProperty("storePassword")
+
+            if (keyAliasStr != null && keyPasswordStr != null && storeFileStr != null && storePasswordStr != null) {
+                keyAlias = keyAliasStr
+                keyPassword = keyPasswordStr
+                storeFile = file(storeFileStr)
+                storePassword = storePasswordStr
+            } else {
+                println("Warning: Signing properties missing. Release build will not be signed.")
+            }
         }
     }
 
