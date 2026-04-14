@@ -91,6 +91,15 @@ class AppTheme {
         titleTextStyle: GoogleFonts.lilitaOne(fontSize: 24, color: textMain),
         contentTextStyle: GoogleFonts.nunito(fontSize: 18, color: textMain, fontWeight: FontWeight.bold),
       ),
+      scrollbarTheme: ScrollbarThemeData(
+        thumbColor: WidgetStateProperty.all(surfaceStroke.withOpacity(0.8)),
+        trackColor: WidgetStateProperty.all(Colors.transparent),
+        radius: const Radius.circular(8),
+        thickness: WidgetStateProperty.all(6),
+        interactive: true,
+      ),
+
+
       pageTransitionsTheme: const PageTransitionsTheme(
         builders: {
           TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),

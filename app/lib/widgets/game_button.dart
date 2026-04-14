@@ -15,7 +15,14 @@ class GameButton extends StatefulWidget {
     required this.onPressed,
     this.type = GameButtonType.primary,
     this.icon,
+    this.isLoading = false,
+    this.isCompact = false,
   });
+
+  final bool isLoading;
+  final bool isCompact;
+
+
 
   @override
   State<GameButton> createState() => _GameButtonState();
@@ -49,56 +56,82 @@ class _GameButtonState extends State<GameButton> {
   @override
   Widget build(BuildContext context) {
     final textColor = widget.type == GameButtonType.warning ? Colors.black87 : Colors.white;
+    final double totalHeight = widget.isCompact ? 56.0 : 80.0;
     const double pushDepth = 6.0;
+    final double buttonHeight = totalHeight - pushDepth;
 
     return GestureDetector(
-      onTapDown: widget.onPressed != null ? (_) => setState(() => _isPressed = true) : null,
-      onTapUp: widget.onPressed != null ? (_) {
+      onTapDown: (widget.onPressed != null && !widget.isLoading) ? (_) => setState(() => _isPressed = true) : null,
+      onTapUp: (widget.onPressed != null && !widget.isLoading) ? (_) {
         setState(() => _isPressed = false);
         widget.onPressed!();
       } : null,
       onTapCancel: () => setState(() => _isPressed = false),
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 100),
-        margin: EdgeInsets.only(top: _isPressed ? pushDepth : 0, bottom: _isPressed ? 0 : pushDepth),
-        decoration: BoxDecoration(
-          color: _bottomColor,
-          borderRadius: BorderRadius.circular(16),
-          boxShadow: widget.onPressed != null && !_isPressed
-              ? [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.3),
-                    offset: const Offset(0, 4),
-                    blurRadius: 4,
-                  )
-                ]
-              : [],
-        ),
-        child: Container(
-          decoration: BoxDecoration(
-            color: _topColor,
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: Colors.white.withOpacity(0.2), width: 1.5),
+      child: SizedBox(
+        height: totalHeight,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 100),
+          margin: EdgeInsets.only(
+            top: _isPressed ? pushDepth : 0,
+            bottom: _isPressed ? 0 : pushDepth,
           ),
-           padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 24),
-           child: Row(
-            mainAxisSize: MainAxisSize.min,
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              if (widget.icon != null) ...[
-                Icon(widget.icon, color: textColor, size: 28),
-                const SizedBox(width: 8),
-              ],
-              Text(
-                widget.label,
-                textAlign: TextAlign.center,
-                style: GoogleFonts.lilitaOne(
-                  fontSize: 22,
-                  color: textColor,
-                  letterSpacing: 1.2,
+          decoration: BoxDecoration(
+            color: _bottomColor,
+            borderRadius: BorderRadius.circular(16),
+            boxShadow: widget.onPressed != null && !_isPressed
+                ? [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.3),
+                      offset: const Offset(0, 4),
+                      blurRadius: 4,
+                    )
+                  ]
+                : [],
+          ),
+          child: Container(
+            height: buttonHeight,
+            decoration: BoxDecoration(
+              color: _topColor,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: Colors.white.withOpacity(0.2), width: 1.5),
+            ),
+            padding: EdgeInsets.symmetric(
+              horizontal: widget.isCompact ? 12 : 24,
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.max,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                if (widget.isLoading) ...[
+                  SizedBox(
+                    width: widget.isCompact ? 18 : 24,
+                    height: widget.isCompact ? 18 : 24,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 3,
+                      valueColor: AlwaysStoppedAnimation<Color>(textColor),
+                    ),
+                  ),
+                  SizedBox(width: widget.isCompact ? 8 : 12),
+                ] else if (widget.icon != null) ...[
+                  Icon(widget.icon, color: textColor, size: widget.isCompact ? 20 : 28),
+                  const SizedBox(width: 8),
+                ],
+                Flexible(
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      widget.label,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.lilitaOne(
+                        fontSize: widget.isCompact ? 18 : 22,
+                        color: textColor,
+                        letterSpacing: 1.2,
+                      ),
+                    ),
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

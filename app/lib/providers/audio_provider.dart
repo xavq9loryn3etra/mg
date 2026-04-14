@@ -40,24 +40,35 @@ final soundServiceProvider = Provider<SoundService>((ref) {
 class SoundService {
   final Ref _ref;
   Timer? _fadeTimer;
+  bool _isAmbientDesired = false;
   
   SoundService(this._ref);
 
   AudioPlayer get _player => _ref.read(audioPlayerProvider);
 
   Future<void> playAmbient() async {
-    // If we're muted, we don't even start playing to save resources
+    _isAmbientDesired = true;
+
+    // If we're muted, we don't start playing to save resources
     if (_ref.read(isMutedProvider)) {
       await _player.stop();
       return;
     }
     
     try {
+      // If already playing, just ensure volume is synced
+      if (_player.playing && _player.audioSource != null) {
+        updateVolume(fade: true);
+        return;
+      }
+
       await _player.setAsset('assets/intro-audio.mp3');
       await _player.setLoopMode(LoopMode.all);
       
       // Initially sync volume instantly without fade for the very first play
-      updateVolume(fade: false); 
+      // so we don't start at max volume if we were supposed to be quiet
+      final targetVolume = _ref.read(isMutedProvider) ? 0.0 : 0.6;
+      await _player.setVolume(targetVolume);
       
       _player.play();
     } catch (e) {
@@ -68,6 +79,13 @@ class SoundService {
   /// Updates the volume, optionally with a smooth fade in/out effect.
   Future<void> updateVolume({bool fade = true}) async {
     final isMuted = _ref.read(isMutedProvider);
+    
+    // CRITICAL: If we are unmuting and should be playing but aren't, start it.
+    if (!isMuted && _isAmbientDesired && !_player.playing) {
+      await playAmbient();
+      return;
+    }
+
     final targetVolume = isMuted ? 0.0 : 0.6;
     
     if (!fade) {
@@ -109,6 +127,7 @@ class SoundService {
   }
 
   void stop() {
+    _isAmbientDesired = false;
     _cancelCurrentFade();
     _player.stop();
   }

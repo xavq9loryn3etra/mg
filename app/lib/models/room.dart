@@ -9,6 +9,7 @@ class Room {
   final String? morningAnnouncement;
   final String? winner;
   final GameConfig config;
+  final Map<String, String> votes;
 
   Room({
     required this.code,
@@ -19,9 +20,18 @@ class Room {
     this.morningAnnouncement,
     this.winner,
     required this.config,
+    this.votes = const {},
   });
 
   factory Room.fromJson(Map<dynamic, dynamic> json, String code) {
+    Map<String, String> votesMap = {};
+    if (json['votes'] != null) {
+      final rawVotes = json['votes'] as Map<dynamic, dynamic>;
+      rawVotes.forEach((key, value) {
+        votesMap[key.toString()] = value.toString();
+      });
+    }
+
     return Room(
       code: code,
       status: json['status'] ?? 'lobby',
@@ -31,6 +41,7 @@ class Room {
       morningAnnouncement: json['morningAnnouncement'],
       winner: json['winner'],
       config: GameConfig.fromJson(json['config'] ?? {}),
+      votes: votesMap,
     );
   }
 }

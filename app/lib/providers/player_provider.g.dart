@@ -22,6 +22,22 @@ final playerNamesProvider =
 
 typedef PlayerNamesRef
     = AutoDisposeStreamProviderRef<Map<String, PlayerNameItem>>;
+String _$allPlayersHash() => r'all_players_custom_hash';
+
+/// See also [allPlayers].
+@ProviderFor(allPlayers)
+final allPlayersProvider =
+    AutoDisposeStreamProvider<Map<String, Player>>.internal(
+  allPlayers,
+  name: r'allPlayersProvider',
+  debugGetCreateSourceHash:
+      const bool.fromEnvironment('dart.vm.product') ? null : _$allPlayersHash,
+  dependencies: null,
+  allTransitiveDependencies: null,
+);
+
+typedef AllPlayersRef = AutoDisposeStreamProviderRef<Map<String, Player>>;
+
 String _$pendingPlayersHash() => r'5c3d63b02d950c50e77da42419b3d6fe908af8ed';
 
 /// See also [pendingPlayers].

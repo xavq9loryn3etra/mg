@@ -243,8 +243,12 @@ class GameService {
       updates['players/$roomCode/$id/protectedByDoctor'] = false;
       updates['players/$roomCode/$id/bites'] = 0;
       updates['players/$roomCode/$id/isAlive'] = true;
+      updates['players/$roomCode/$id/isReady'] = false;
       updates['player_names/$roomCode/$id/isAlive'] = true;
+      updates['player_names/$roomCode/$id/role'] = roles[i];
+      updates['player_names/$roomCode/$id/isReady'] = false;
     }
+
 
     updates['rooms/$roomCode/status'] = 'night';
     updates['rooms/$roomCode/nightCount'] = 1;
@@ -407,18 +411,26 @@ class GameService {
       await actionRef.child('dogTarget').set(targetId);
     } else if (me?['role'] == 'detective') {
       await actionRef.child('detectiveScan').set(targetId);
-
-      // Resolve scan immediately
-      final targetRole = target?['role'] as String?;
-      String result = 'Villager';
-      if (targetRole == 'mafia' || targetRole == 'rabid_dog') {
-        result = 'Mafia';
-      }
-      return result;
+      await actionRef.child('detectiveScanResolved').set(false);
     }
 
     return null;
   }
+
+  /// Narrator resolves the detective's scan so they can see the result.
+  Future<void> resolveDetectiveScan(String roomCode) async {
+    final uid = _uid;
+    if (uid == null) throw Exception('Must be logged in.');
+
+    final roomSnap = await _db.ref('rooms/$roomCode/hostId').get();
+    if (roomSnap.value != uid) throw Exception('Only host can resolve scans.');
+
+    final nightSnap = await _db.ref('rooms/$roomCode/nightCount').get();
+    final nightCount = nightSnap.value as int? ?? 0;
+    
+    await _db.ref('night_actions/$roomCode/$nightCount/detectiveScanResolved').set(true);
+  }
+
 
   /// Resolve the night phase and transition to day. Applies kills, bites, protection.
   Future<void> revealMorning(String roomCode) async {
@@ -462,6 +474,9 @@ class GameService {
       players[doctorTarget]?['protectedByDoctor'] = true;
     }
 
+    final mafiaKills = <String>[];
+    final rabiesKills = <String>[];
+
     // Resolve mafia kill
     if (actions['mafiaTarget'] != null) {
       final t = actions['mafiaTarget'] as String;
@@ -469,6 +484,7 @@ class GameService {
         updates['players/$roomCode/$t/isAlive'] = false;
         updates['player_names/$roomCode/$t/isAlive'] = false;
         players[t]?['isAlive'] = false;
+        mafiaKills.add(players[t]?['name'] as String? ?? 'Unknown');
         deaths.add(players[t]?['name'] as String? ?? 'Unknown');
       }
     }
@@ -484,24 +500,40 @@ class GameService {
         updates['players/$roomCode/$t/isAlive'] = false;
         updates['player_names/$roomCode/$t/isAlive'] = false;
         players[t]?['isAlive'] = false;
-        deaths.add('${players[t]?['name'] ?? 'Unknown'} (succumbed to rabies)');
+        final name = players[t]?['name'] ?? 'Unknown';
+        rabiesKills.add(name);
+        deaths.add(name);
       }
     }
 
-    // Morning announcement
-    final msg = deaths.isEmpty
-        ? 'The night was quiet. No one died.'
-        : 'Tragedy struck! ${deaths.join(', ')} died during the night.';
-
-    updates['rooms/$roomCode/morningAnnouncement'] = msg;
-    updates['rooms/$roomCode/status'] = 'day';
-
-    for (var entry in updates.entries) {
-      await _db.ref(entry.key).set(entry.value);
+    // Morning announcement logic
+    String msg = '';
+    if (deaths.isEmpty) {
+      msg = 'The night was quiet. No one died.';
+    } else {
+      final List<String> bulletPoints = [];
+      if (mafiaKills.isNotEmpty) {
+        final gunshotPlural = mafiaKills.length == 1 ? 'gunshot' : 'gunshots';
+        bulletPoints.add('The town was woken by ${mafiaKills.length} $gunshotPlural. ${mafiaKills.join(", ")} was found dead.');
+      }
+      if (rabiesKills.isNotEmpty) {
+        bulletPoints.add('${rabiesKills.join(", ")} succumbed to rabies after being bitten.');
+      }
+      msg = bulletPoints.join(" ");
     }
 
-    // Check win condition
-    await _checkWinCondition(roomCode);
+    updates['rooms/$roomCode/morningAnnouncement'] = msg;
+    
+    // Check win condition BEFORE updating status
+    final winUpdates = await _getWinConditionUpdates(roomCode, updates);
+    if (winUpdates != null) {
+      updates.addAll(winUpdates);
+    } else {
+      updates['rooms/$roomCode/status'] = 'day';
+    }
+
+    // Finalize all updates atomically using multi-path update
+    await _db.ref().update(updates);
   }
 
   /// Start the voting phase.
@@ -579,14 +611,8 @@ class GameService {
           'The village has voted to eliminate someone.';
     }
 
-    updates['rooms/$roomCode/nightCount'] = (room['nightCount'] as int) + 1;
-    updates['rooms/$roomCode/status'] = 'night';
-    updates['rooms/$roomCode/activeRole'] = null;
-
-    for (var entry in updates.entries) {
-      await _db.ref(entry.key).set(entry.value);
-    }
-    await _checkWinCondition(roomCode);
+    // Group all updates into a single atomic multi-path update
+    await _db.ref().update(updates);
   }
 
   /// Skip day discussion and go directly to night.
@@ -607,10 +633,31 @@ class GameService {
     });
   }
 
-  /// Check if the game has ended (mafia eliminated or mafia >= villagers).
-  Future<void> _checkWinCondition(String roomCode) async {
+  /// Internal helper to calculate win updates without performing a write.
+  /// [pendingUpdates] allows us to account for players who are about to die in the same transaction.
+  Future<Map<String, dynamic>?> _getWinConditionUpdates(String roomCode, [Map<String, dynamic>? pendingUpdates]) async {
     final playersSnap = await _db.ref('players/$roomCode').get();
-    final players = (playersSnap.value as Map<dynamic, dynamic>?) ?? {};
+    final playersRaw = (playersSnap.value as Map<dynamic, dynamic>?) ?? {};
+    
+    // Create a deep modifiable copy to prevent crashes when applying pending updates
+    final players = <String, Map<String, dynamic>>{};
+    playersRaw.forEach((k, v) {
+      players[k.toString()] = Map<String, dynamic>.from(v as Map);
+    });
+
+    // Apply pending updates to the local map so we check the NEXT state
+    if (pendingUpdates != null) {
+      pendingUpdates.forEach((key, value) {
+        if (key.contains('/isAlive')) {
+           final parts = key.split('/');
+           // Extract UID from path (e.g., "players/ROOM/UID/isAlive")
+           final uid = parts.length >= 3 ? parts[2] : null;
+           if (uid != null && players.containsKey(uid)) {
+             players[uid]!['isAlive'] = value;
+           }
+        }
+      });
+    }
 
     var mafiaCount = 0;
     var villageCount = 0;
@@ -627,15 +674,25 @@ class GameService {
     }
 
     if (mafiaCount == 0) {
-      await _db.ref('rooms/$roomCode').update({
-        'status': 'game_over',
-        'winner': 'village',
-      });
-    } else if (mafiaCount >= villageCount) {
-      await _db.ref('rooms/$roomCode').update({
-        'status': 'game_over',
-        'winner': 'mafia',
-      });
+      return {
+        'rooms/$roomCode/status': 'game_over',
+        'rooms/$roomCode/winner': 'village',
+      };
+    } else if (villageCount == 0) {
+      return {
+        'rooms/$roomCode/status': 'game_over',
+        'rooms/$roomCode/winner': 'mafia',
+      };
+    }
+    return null;
+  }
+
+  /// Check if the game has ended (mafia eliminated or mafia >= villagers).
+  /// This version is for standalone checks (rarely used now with atomic updates).
+  Future<void> _checkWinCondition(String roomCode) async {
+    final updates = await _getWinConditionUpdates(roomCode);
+    if (updates != null) {
+      await _db.ref().update(updates);
     }
   }
 
@@ -646,22 +703,124 @@ class GameService {
     await _db.ref('user_sessions/$uid').remove();
   }
 
-  /// Terminate the room for everyone. Sets status to 'game_over'.
+  /// Resets a mid-game room back to lobby state (clears roles, kills, etc.)
+  Future<void> resetRoomToLobby(String roomCode) async {
+    final uid = _uid;
+    if (uid == null) return;
+    
+    final roomSnap = await _db.ref('rooms/$roomCode').get();
+    if (!roomSnap.exists) return;
+    final roomData = roomSnap.value as Map<dynamic, dynamic>;
+    if (roomData['hostId'] != uid) throw Exception('Only host can reset room.');
+
+    final updates = <String, dynamic>{};
+    updates['rooms/$roomCode/status'] = 'lobby';
+    updates['rooms/$roomCode/morningAnnouncement'] = null;
+    updates['rooms/$roomCode/activeRole'] = null;
+    updates['rooms/$roomCode/votes'] = null;
+    updates['rooms/$roomCode/nightCount'] = 0;
+    updates['rooms/$roomCode/winner'] = null;
+    
+    // Clear all night actions for this room
+    await _db.ref('night_actions/$roomCode').remove();
+    
+    // Reset all players in the room
+    final playersSnap = await _db.ref('players/$roomCode').get();
+    if (playersSnap.exists) {
+      final players = playersSnap.value as Map<dynamic, dynamic>;
+      for (var uid in players.keys) {
+        updates['players/$roomCode/$uid/role'] = 'unassigned';
+        updates['players/$roomCode/$uid/isReady'] = false;
+        updates['players/$roomCode/$uid/bites'] = 0;
+        updates['players/$roomCode/$uid/protectedByDoctor'] = false;
+        updates['players/$roomCode/$uid/isAlive'] = true;
+        updates['players/$roomCode/$uid/isAbandoned'] = false;
+        
+        updates['player_names/$roomCode/$uid/role'] = 'unassigned';
+        updates['player_names/$roomCode/$uid/isReady'] = false;
+        updates['player_names/$roomCode/$uid/isAlive'] = true;
+        updates['player_names/$roomCode/$uid/isAbandoned'] = false;
+      }
+    }
+    
+    await _db.ref().update(updates);
+  }
+
+  /// Combined method to terminate a room (delete data) or reset to lobby.
   Future<void> terminateRoom(String roomCode) async {
     final uid = _uid;
-    if (uid == null) throw Exception('Must be logged in.');
+    if (uid == null) return;
 
     final roomSnap = await _db.ref('rooms/$roomCode').get();
     if (!roomSnap.exists) return;
-    
+
     final roomData = roomSnap.value as Map<dynamic, dynamic>;
-    if (roomData['hostId'] != uid) {
-      throw Exception('Only the Host can terminate the room.');
+    if (roomData['hostId'] != uid) return;
+
+    final currentStatus = roomData['status'] as String?;
+    
+    if (currentStatus == 'lobby' || currentStatus == 'game_over') {
+      // Terminate completely if in lobby or game over results
+      await _db.ref('rooms/$roomCode').update({
+        'status': 'game_over_terminated', // Specific status to trigger home redirect
+      });
+      // Actually remove it after a short delay or just remove it now
+      await _db.ref('rooms/$roomCode').remove();
+    } else {
+      // Reset to lobby if mid-game
+      await resetRoomToLobby(roomCode);
+    }
+  }
+
+
+  /// Mark a player as ready (acknowledged their role)
+  Future<void> setPlayerReady(String roomCode) async {
+    final uid = _uid;
+    if (uid == null) return;
+    
+    final updates = {
+      'players/$roomCode/$uid/isReady': true,
+      'player_names/$roomCode/$uid/isReady': true,
+    };
+    
+    await _db.ref().update(updates);
+  }
+
+  /// Combined method to leave a room and handle mid-game status updates.
+  Future<void> leaveRoom(String roomCode) async {
+    final uid = _uid;
+    if (uid == null) return;
+
+    final roomSnap = await _db.ref('rooms/$roomCode').get();
+    if (roomSnap.exists) {
+      final roomData = roomSnap.value as Map<dynamic, dynamic>;
+      final status = roomData['status'] as String?;
+
+      // 1. If we are in the lobby or pending, just remove the record
+      if (status == 'lobby') {
+        await _db.ref('pending_players/$roomCode/$uid').remove();
+        await _db.ref('players/$roomCode/$uid').remove();
+        await _db.ref('player_names/$roomCode/$uid').remove();
+      } 
+      // 2. If the game has already started or is transitioning, mark the player as dead/abandoned
+      else {
+        final updates = {
+          'players/$roomCode/$uid/isAlive': false,
+          'players/$roomCode/$uid/isAbandoned': true,
+          'player_names/$roomCode/$uid/isAlive': false,
+          'player_names/$roomCode/$uid/isAbandoned': true,
+        };
+        await _db.ref().update(updates);
+        
+        // Check win conditions immediately in case this death ends the game
+        await _checkWinCondition(roomCode);
+      }
+
     }
 
-    await _db.ref('rooms/$roomCode').update({
-      'status': 'game_over',
-      'lastActive': ServerValue.timestamp,
-    });
+    // Always clear the user session to prevent auto-reconnect
+    await leaveSession();
   }
 }
+
+

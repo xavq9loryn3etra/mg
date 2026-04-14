@@ -8,7 +8,10 @@ import '../services/game_service.dart';
 import '../widgets/gamified_screen.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/game_button.dart';
+import '../widgets/game_layout.dart';
+import '../widgets/game_app_bar.dart';
 import '../theme.dart';
+
 
 class WaitingScreen extends ConsumerStatefulWidget {
   final String roomCode;
@@ -51,7 +54,8 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen> {
             type: GameButtonType.primary,
             onPressed: () async {
               Navigator.of(ctx).pop();
-              await _gameService.leaveSession();
+              await _gameService.leaveRoom(widget.roomCode);
+
               if (context.mounted) {
                 context.go('/');
               }
@@ -77,17 +81,27 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen> {
       }
     });
 
-    // Also check if we were rejected (removed from pending list)
-    ref.listen(pendingPlayersProvider, (prev, next) {
-      if (uid != null && next.value != null && prev?.value != null) {
-        if (prev!.value!.containsKey(uid) && !next.value!.containsKey(uid)) {
-          // If we are no longer pending, but we aren't in players (checked above), maybe we got rejected?
-          // The router guard might handle this if our session got deleted, but let's be safe:
-          final players = ref.read(playerNamesProvider).value;
-          if (players != null && !players.containsKey(uid)) {
-            ScaffoldMessenger.of(context).clearSnackBars();
+    // Handle room termination
+    ref.listen(roomStreamProvider, (prev, next) {
+      final nextData = next.asData?.value;
+      if (nextData == null) return;
+      
+      final prevData = prev?.asData?.value;
+      if (prevData == null) return;
+
+      final oldStatus = prevData.status;
+      final newStatus = nextData.status;
+
+      if (oldStatus == newStatus) return; // No change, don't spam
+
+      if (newStatus == 'game_over') {
+        if (context.mounted) {
+          ScaffoldMessenger.of(context).clearSnackBars();
+          if (nextData.winner != null) {
+            context.go('/gameover/${widget.roomCode}');
+          } else {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(content: Text('Your request to join was rejected.')),
+              const SnackBar(content: Text('Host cancelled the room.')),
             );
             context.go('/');
           }
@@ -95,61 +109,75 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen> {
       }
     });
 
-    return GamifiedScreen(
-      appBar: AppBar(
-        title: Text('JOINING...', style: theme.textTheme.displayMedium),
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        centerTitle: true,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.exit_to_app, color: AppTheme.danger),
-            onPressed: () => _showExitConfirmation(context),
+
+
+
+
+    // Also check if we were rejected (removed from pending list)
+    ref.listen(pendingPlayersProvider, (prev, next) {
+      if (uid != null && next.value != null && prev?.value != null) {
+        if (prev!.value!.containsKey(uid) && !next.value!.containsKey(uid)) {
+          // If we are no longer pending, but we aren't in players (checked above), maybe we got rejected?
+          final players = ref.read(playerNamesProvider).value;
+          final room = ref.read(roomStreamProvider).value;
+          final isHost = room?.hostId == uid;
+
+          if (players != null && !players.containsKey(uid) && !isHost) {
+            if (context.mounted) {
+              ScaffoldMessenger.of(context).clearSnackBars();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('Your request to join was rejected.')),
+              );
+              context.go('/');
+            }
+          }
+        }
+      }
+    });
+
+
+    return GameLayout(
+      scrollable: false,
+      appBar: GameAppBar(
+        title: 'JOINING...',
+        roomCode: widget.roomCode,
+        isHost: false, // Players are waiting to join, not the host
+      ),
+      content: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Image.asset(
+            'assets/banner.png',
+            height: 120,
+            fit: BoxFit.contain,
+          ),
+          const SizedBox(height: 32),
+          GlassCard(
+            child: Column(
+              children: [
+                const SizedBox(height: 16),
+                const CircularProgressIndicator(color: AppTheme.accent),
+                const SizedBox(height: 24),
+                Text(
+                  'WAITING FOR HOST',
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: AppTheme.accent,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'The host must approve your request to join room ${widget.roomCode}.',
+                  style: theme.textTheme.bodyLarge,
+                  textAlign: TextAlign.center,
+                ),
+              ],
+            ),
           ),
         ],
       ),
-      child: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24.0),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'MAFIA: PURPLE TOWN',
-                style: theme.textTheme.displayLarge?.copyWith(
-                  fontSize: 32,
-                  letterSpacing: 3,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 32),
-              GlassCard(
-                child: Column(
-                  children: [
-                    const SizedBox(height: 16),
-                    const CircularProgressIndicator(color: AppTheme.accent),
-                    const SizedBox(height: 24),
-                    Text(
-                      'WAITING FOR HOST',
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: AppTheme.accent,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'The host must approve your request to join room ${widget.roomCode}.',
-                      style: theme.textTheme.bodyLarge,
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
+
   }
 }

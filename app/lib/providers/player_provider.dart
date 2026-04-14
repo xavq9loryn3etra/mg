@@ -14,6 +14,14 @@ Stream<Map<String, PlayerNameItem>> playerNames(PlayerNamesRef ref) {
 }
 
 @riverpod
+Stream<Map<String, Player>> allPlayers(AllPlayersRef ref) {
+  final roomCode = ref.watch(currentRoomCodeProvider);
+  if (roomCode == null) return const Stream.empty();
+  return ref.watch(databaseServiceProvider).allPlayersStream(roomCode);
+}
+
+
+@riverpod
 Stream<Map<String, PlayerNameItem>> pendingPlayers(PendingPlayersRef ref) {
   final roomCode = ref.watch(currentRoomCodeProvider);
   if (roomCode == null) return const Stream.empty();

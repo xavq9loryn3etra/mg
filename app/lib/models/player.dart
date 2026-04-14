@@ -5,6 +5,9 @@ class Player {
   final bool isAlive;
   final int bites;
   final bool protectedByDoctor;
+  final bool isReady;
+  final bool isAbandoned;
+
 
   Player({
     required this.id,
@@ -13,7 +16,11 @@ class Player {
     required this.isAlive,
     required this.bites,
     required this.protectedByDoctor,
+    required this.isReady,
+    required this.isAbandoned,
   });
+
+
 
   factory Player.fromJson(Map<dynamic, dynamic> json, String id) {
     return Player(
@@ -23,7 +30,11 @@ class Player {
       isAlive: json['isAlive'] ?? true,
       bites: json['bites'] ?? 0,
       protectedByDoctor: json['protectedByDoctor'] ?? false,
+      isReady: json['isReady'] ?? false,
+      isAbandoned: json['isAbandoned'] ?? false,
     );
+
+
   }
 }
 
@@ -32,8 +43,13 @@ class PlayerNameItem {
   final String name;
   final bool isAlive;
   final String role;
+  final bool isReady;
+  final bool isAbandoned;
 
-  PlayerNameItem({required this.id, required this.name, required this.isAlive, required this.role});
+
+  PlayerNameItem({required this.id, required this.name, required this.isAlive, required this.role, required this.isReady, required this.isAbandoned});
+
+
 
   factory PlayerNameItem.fromJson(Map<dynamic, dynamic> json, String id) {
     return PlayerNameItem(
@@ -41,6 +57,10 @@ class PlayerNameItem {
       name: json['name'] ?? '',
       isAlive: json['isAlive'] ?? true,
       role: json['role'] ?? 'unassigned',
+      isReady: json['isReady'] ?? false,
+      isAbandoned: json['isAbandoned'] ?? false,
     );
+
+
   }
 }

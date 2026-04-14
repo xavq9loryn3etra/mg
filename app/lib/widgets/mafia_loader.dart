@@ -4,7 +4,8 @@ import '../theme.dart';
 /// A mafia-themed loading indicator with a pulsing crosshair icon.
 class MafiaLoader extends StatefulWidget {
   final String? message;
-  const MafiaLoader({super.key, this.message});
+  final bool isCompact;
+  const MafiaLoader({super.key, this.message, this.isCompact = false});
 
   @override
   State<MafiaLoader> createState() => _MafiaLoaderState();
@@ -51,9 +52,9 @@ class _MafiaLoaderState extends State<MafiaLoader>
                 scale: _scaleAnim.value,
                 child: Opacity(
                   opacity: _opacityAnim.value,
-                  child: const Icon(
+                  child: Icon(
                     Icons.track_changes,
-                    size: 80,
+                    size: widget.isCompact ? 40 : 80,
                     color: AppTheme.accent,
                   ),
                 ),

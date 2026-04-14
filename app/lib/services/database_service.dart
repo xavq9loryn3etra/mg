@@ -1,6 +1,8 @@
 import 'package:firebase_database/firebase_database.dart';
 import '../models/room.dart';
 import '../models/player.dart';
+import '../models/night_actions.dart';
+
 
 class DatabaseService {
   final FirebaseDatabase _db = FirebaseDatabase.instance;
@@ -55,4 +57,27 @@ class DatabaseService {
       );
     });
   }
+
+  Stream<Map<String, Player>> allPlayersStream(String roomCode) {
+    return _db.ref('players/$roomCode').onValue.map((event) {
+      final value = event.snapshot.value as Map<dynamic, dynamic>?;
+      if (value == null) return {};
+      final map = <String, Player>{};
+      value.forEach((key, val) {
+        map[key as String] = Player.fromJson(
+          val as Map<dynamic, dynamic>,
+          key,
+        );
+      });
+      return map;
+    });
+  }
+
+  Stream<NightActions?> nightActionsStream(String roomCode, int nightCount) {
+    return _db.ref('night_actions/$roomCode/$nightCount').onValue.map((event) {
+      if (event.snapshot.value == null) return null;
+      return NightActions.fromJson(event.snapshot.value as Map<dynamic, dynamic>);
+    });
+  }
 }
+
