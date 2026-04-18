@@ -7,14 +7,14 @@ import 'auth_provider.dart';
 part 'player_provider.g.dart';
 
 @riverpod
-Stream<Map<String, PlayerNameItem>> playerNames(PlayerNamesRef ref) {
+Stream<Map<String, PlayerNameItem>> playerNames(Ref ref) {
   final roomCode = ref.watch(currentRoomCodeProvider);
   if (roomCode == null) return const Stream.empty();
   return ref.watch(databaseServiceProvider).playerNamesStream(roomCode);
 }
 
 @riverpod
-Stream<Map<String, Player>> allPlayers(AllPlayersRef ref) {
+Stream<Map<String, Player>> allPlayers(Ref ref) {
   final roomCode = ref.watch(currentRoomCodeProvider);
   if (roomCode == null) return const Stream.empty();
   return ref.watch(databaseServiceProvider).allPlayersStream(roomCode);
@@ -22,14 +22,14 @@ Stream<Map<String, Player>> allPlayers(AllPlayersRef ref) {
 
 
 @riverpod
-Stream<Map<String, PlayerNameItem>> pendingPlayers(PendingPlayersRef ref) {
+Stream<Map<String, PlayerNameItem>> pendingPlayers(Ref ref) {
   final roomCode = ref.watch(currentRoomCodeProvider);
   if (roomCode == null) return const Stream.empty();
   return ref.watch(databaseServiceProvider).pendingPlayersStream(roomCode);
 }
 
 @riverpod
-Stream<Player?> myPlayer(MyPlayerRef ref) {
+Stream<Player?> myPlayer(Ref ref) {
   final roomCode = ref.watch(currentRoomCodeProvider);
   final user = ref.watch(authStateProvider).value;
 

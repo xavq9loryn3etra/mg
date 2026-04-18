@@ -30,7 +30,7 @@ class _TutorialScreenState extends ConsumerState<TutorialScreen>
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final slides = [
+    const slides = [
       _Slide(
         icon: Icons.groups_rounded,
         title: 'WELCOME',
@@ -38,63 +38,63 @@ class _TutorialScreenState extends ConsumerState<TutorialScreen>
             'A party game of deception, deduction, and survival. Gather your friends and uncover the truth... or bluff your way to victory.',
         color: AppTheme.accent,
       ),
-      const _Slide(
+      _Slide(
         icon: Icons.theater_comedy_rounded,
         title: 'THE NARRATOR',
         description:
             'The Master of Ceremonies. They do not play, but guide the story, manage the night phases, and reveal the morning tragedies.',
         color: Colors.white70,
       ),
-      const _Slide(
+      _Slide(
         icon: Icons.gavel,
         title: 'THE GODFATHER',
         description:
             'The leader of the Mafia. Each night, decide who should be eliminated. You also have the final say on all Mafia actions.\n\nNote: You appear as Innocent to the Detective!',
         color: AppTheme.primary,
       ),
-      const _Slide(
+      _Slide(
         icon: Icons.masks,
         title: 'THE MAFIA',
         description:
             'The secret strike team. You wake up each night to choose a victim. Blend in during the day to avoid suspicion.',
         color: AppTheme.primary,
       ),
-      const _Slide(
+      _Slide(
         icon: Icons.health_and_safety,
         title: 'THE DOCTOR',
         description:
             'The guardian. Choose one player each night to save from a Mafia attack. You can even choose to save yourself!',
         color: AppTheme.success,
       ),
-      const _Slide(
+      _Slide(
         icon: Icons.pets,
         title: 'THE RABID DOG',
         description:
             'The chaos element. Bite a player each night. If someone is bitten twice, they succumb to rabies and die.',
         color: Colors.orangeAccent,
       ),
-      const _Slide(
+      _Slide(
         icon: Icons.search_rounded,
         title: 'THE DETECTIVE',
         description:
             'Each night, the Detective investigates one player. The Narrator will signal \'Yes\' if they are Mafia, or \'No\' otherwise.\n\nNote: The Godfather appears as \'No\' (Innocent) to the Detective!',
         color: Colors.blueAccent,
       ),
-      const _Slide(
+      _Slide(
         icon: Icons.person,
         title: 'THE VILLAGERS',
         description:
             'The innocent majority. You have no night powers, but your logic and your vote during the day are the town\'s only weapons.',
         color: AppTheme.accent,
       ),
-      const _Slide(
+      _Slide(
         icon: Icons.nightlight_round,
         title: 'NIGHT PHASE',
         description:
             'The village sleeps while special roles perform their secret actions. The Narrator wakes everyone up when morning comes.',
         color: Colors.deepPurpleAccent,
       ),
-      const _Slide(
+      _Slide(
         icon: Icons.wb_sunny_rounded,
         title: 'DAY PHASE',
         description:
@@ -185,9 +185,9 @@ class _TutorialScreenState extends ConsumerState<TutorialScreen>
                             horizontal: 24,
                             vertical: 14,
                           ),
-                          backgroundColor: Colors.white.withOpacity(0.05),
+                          backgroundColor: Colors.white.withValues(alpha: 0.05),
                           side: BorderSide(
-                            color: slides[_currentPage].color.withOpacity(0.3),
+                            color: slides[_currentPage].color.withValues(alpha: 0.3),
                             width: 1,
                           ),
                           shape: RoundedRectangleBorder(
@@ -253,7 +253,7 @@ class _TutorialScreenState extends ConsumerState<TutorialScreen>
           Text(
             slide.description,
             style: theme.textTheme.bodyLarge?.copyWith(
-              color: Colors.white.withOpacity(0.7),
+              color: Colors.white.withValues(alpha: 0.7),
               height: 1.6,
               fontSize: 18,
             ),
@@ -278,7 +278,7 @@ class _RadialGlowBackground extends StatelessWidget {
         gradient: RadialGradient(
           center: const Alignment(0, -0.3),
           radius: 1.2,
-          colors: [color.withOpacity(0.15), Colors.black],
+          colors: [color.withValues(alpha: 0.15), Colors.black],
         ),
       ),
     );
@@ -328,9 +328,9 @@ class _FloatingIconState extends State<_FloatingIcon>
           child: Icon(
             widget.icon,
             size: 120,
-            color: widget.color.withOpacity(0.9),
+            color: widget.color.withValues(alpha: 0.9),
             shadows: [
-              Shadow(color: widget.color.withOpacity(0.5), blurRadius: 40),
+              Shadow(color: widget.color.withValues(alpha: 0.5), blurRadius: 40),
             ],
           ),
         );

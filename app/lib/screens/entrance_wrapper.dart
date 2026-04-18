@@ -27,10 +27,9 @@ class _EntranceWrapperState extends ConsumerState<EntranceWrapper> with TickerPr
   late Animation<double> _phase2Scale;
 
   final _gameService = GameService();
-  Future<String?>? _sessionCheckFuture;
+  Future<Map<String, String>?>? _sessionCheckFuture;
   
   bool _showLogos = true;
-  bool _isTransitioning = false;
 
   @override
   void initState() {
@@ -40,7 +39,6 @@ class _EntranceWrapperState extends ConsumerState<EntranceWrapper> with TickerPr
     final hasFinishedSplash = ref.read(hasFinishedSplashProvider);
     if (hasFinishedSplash) {
       _showLogos = false;
-      _isTransitioning = false;
     }
 
     _sessionCheckFuture = _gameService.checkActiveSession();
@@ -91,13 +89,23 @@ class _EntranceWrapperState extends ConsumerState<EntranceWrapper> with TickerPr
       
       // Phase 2 Hold logic
       await _phase2Controller.animateTo(0.75);
-      final activeRoomCode = await _sessionCheckFuture;
+      final activeSession = await _sessionCheckFuture;
       
-      // If we found a session, don't even show the Home fade—just jump to lobby
-      if (activeRoomCode != null && mounted) {
-        ref.read(currentRoomCodeProvider.notifier).setCode(activeRoomCode);
+      // If we found a session, don't even show the Home fade—just jump to active phase
+      if (activeSession != null && mounted) {
+        final code = activeSession['roomCode']!;
+        final status = activeSession['status']!;
+        
+        ref.read(currentRoomCodeProvider.notifier).setCode(code);
         ref.read(hasFinishedSplashProvider.notifier).state = true;
-        context.go('/lobby/$activeRoomCode');
+        
+        if (status == 'night') {
+          context.go('/reveal/$code'); // Player must review role before acting
+        } else if (status == 'day') {
+          context.go('/day/$code');
+        } else {
+          context.go('/lobby/$code');
+        }
         return;
       }
 
@@ -106,7 +114,6 @@ class _EntranceWrapperState extends ConsumerState<EntranceWrapper> with TickerPr
       
       if (mounted) {
         setState(() {
-          _isTransitioning = true;
           _showLogos = false;
         });
         // Mark as finished for next time we visit "/" in this session
@@ -152,7 +159,6 @@ class _EntranceWrapperState extends ConsumerState<EntranceWrapper> with TickerPr
               curve: Curves.easeOut,
               onEnd: () {
                 if (!_showLogos) {
-                  setState(() => _isTransitioning = false);
                 }
               },
               child: Container(

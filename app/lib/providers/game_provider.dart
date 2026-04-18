@@ -8,7 +8,7 @@ import 'package:firebase_database/firebase_database.dart';
 part 'game_provider.g.dart';
 
 @riverpod
-bool isNarrator(IsNarratorRef ref) {
+bool isNarrator(Ref ref) {
   final room = ref.watch(roomStreamProvider).value;
   final user = ref.watch(authStateProvider).value;
   if (room == null || user == null) return false;
@@ -16,7 +16,7 @@ bool isNarrator(IsNarratorRef ref) {
 }
 
 @riverpod
-bool isMyTurn(IsMyTurnRef ref) {
+bool isMyTurn(Ref ref) {
   final room = ref.watch(roomStreamProvider).value;
   final myPlayer = ref.watch(myPlayerProvider).value;
 

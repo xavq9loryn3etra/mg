@@ -6,7 +6,7 @@ import '../models/room.dart';
 part 'room_provider.g.dart';
 
 @riverpod
-DatabaseService databaseService(DatabaseServiceRef ref) {
+DatabaseService databaseService(Ref ref) {
   return DatabaseService();
 }
 
@@ -19,7 +19,7 @@ class CurrentRoomCode extends _$CurrentRoomCode {
 }
 
 @riverpod
-Stream<Room?> roomStream(RoomStreamRef ref) {
+Stream<Room?> roomStream(Ref ref) {
   final roomCode = ref.watch(currentRoomCodeProvider);
   if (roomCode == null) return const Stream.empty();
 

@@ -37,8 +37,7 @@ class _GameButtonState extends State<GameButton> {
       case GameButtonType.success: return const Color(0xFF2ECC71);
       case GameButtonType.danger: return const Color(0xFFD90429);
       case GameButtonType.warning: return const Color(0xFFFFB703);
-      case GameButtonType.primary:
-      default: return const Color(0xFF9D4EDD); 
+      case GameButtonType.primary: return const Color(0xFF9D4EDD); 
     }
   }
 
@@ -48,8 +47,7 @@ class _GameButtonState extends State<GameButton> {
       case GameButtonType.success: return const Color(0xFF27AE60);
       case GameButtonType.danger: return const Color(0xFF8D0801);
       case GameButtonType.warning: return const Color(0xFFE5989B); 
-      case GameButtonType.primary:
-      default: return const Color(0xFF5A189A); 
+      case GameButtonType.primary: return const Color(0xFF5A189A); 
     }
   }
 
@@ -81,7 +79,7 @@ class _GameButtonState extends State<GameButton> {
             boxShadow: widget.onPressed != null && !_isPressed
                 ? [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.3),
+                      color: Colors.black.withValues(alpha: 0.3),
                       offset: const Offset(0, 4),
                       blurRadius: 4,
                     )
@@ -93,7 +91,7 @@ class _GameButtonState extends State<GameButton> {
             decoration: BoxDecoration(
               color: _topColor,
               borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: Colors.white.withOpacity(0.2), width: 1.5),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 1.5),
             ),
             padding: EdgeInsets.symmetric(
               horizontal: widget.isCompact ? 12 : 24,

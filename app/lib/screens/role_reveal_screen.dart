@@ -3,7 +3,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../providers/player_provider.dart';
 import '../providers/game_provider.dart';
-import '../widgets/gamified_screen.dart';
 import '../widgets/game_button.dart';
 import '../widgets/mafia_loader.dart';
 import '../widgets/glass_card.dart';
@@ -83,8 +82,6 @@ class _RoleRevealScreenState extends ConsumerState<RoleRevealScreen> {
 
 
 
-    final playersAsync = ref.watch(allPlayersProvider);
-
     return GameLayout(
       scrollable: isHost, // Host sees list (scrollable), Player sees reveal (not scrollable)
       appBar: GameAppBar(
@@ -93,7 +90,7 @@ class _RoleRevealScreenState extends ConsumerState<RoleRevealScreen> {
         isHost: isHost,
       ),
       content: isHost 
-          ? playersAsync.when(
+          ? ref.watch(allPlayersProvider).when(
               data: (playersMap) {
                 final players = playersMap.values.toList();
                 return ListView.separated(
@@ -109,16 +106,16 @@ class _RoleRevealScreenState extends ConsumerState<RoleRevealScreen> {
                     return GlassCard(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       borderColor: player.isAbandoned == true
-                          ? Colors.grey.withOpacity(0.3)
+                          ? Colors.grey.withValues(alpha: 0.3)
                           : player.isReady == true
-                          ? AppTheme.success.withOpacity(0.5)
-                          : AppTheme.danger.withOpacity(0.3),
+                          ? AppTheme.success.withValues(alpha: 0.5)
+                          : AppTheme.danger.withValues(alpha: 0.3),
                       child: Opacity(
                         opacity: player.isAbandoned == true ? 0.5 : 1.0,
                         child: Row(
                           children: [
                             CircleAvatar(
-                              backgroundColor: roleColor.withOpacity(0.2),
+                              backgroundColor: roleColor.withValues(alpha: 0.2),
                               child: Icon(roleIcon, color: roleColor, size: 20),
                             ),
                             const SizedBox(width: 16),
@@ -193,7 +190,7 @@ class _RoleRevealScreenState extends ConsumerState<RoleRevealScreen> {
                                       fontSize: 64,
                                       shadows: [
                                         Shadow(
-                                          color: _getRoleColor(me.role).withOpacity(0.5),
+                                          color: _getRoleColor(me.role).withValues(alpha: 0.5),
                                           blurRadius: 20,
                                         ),
                                       ],
@@ -211,7 +208,7 @@ class _RoleRevealScreenState extends ConsumerState<RoleRevealScreen> {
                                   builder: (context, val, child) {
                                     return Transform.scale(
                                       scale: val,
-                                      child: Icon(Icons.fingerprint, size: 100, color: AppTheme.accent),
+                                      child: const Icon(Icons.fingerprint, size: 100, color: AppTheme.accent),
                                     );
                                   },
                                 ),
@@ -233,7 +230,7 @@ class _RoleRevealScreenState extends ConsumerState<RoleRevealScreen> {
             ),
 
       bottom: isHost 
-          ? playersAsync.maybeWhen(
+          ? ref.watch(allPlayersProvider).maybeWhen(
               data: (playersMap) {
                 final players = playersMap.values.toList();
                 final activePlayers = players.where((p) => p.isAbandoned != true).toList();
@@ -311,53 +308,5 @@ class _RoleRevealScreenState extends ConsumerState<RoleRevealScreen> {
       default:
         return AppTheme.accent;
     }
-  }
-
-  void _exitRoom() {
-    final isHost = ref.read(isNarratorProvider);
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(
-          isHost ? 'Terminate Game?' : 'Leave Game?',
-          style: Theme.of(context).textTheme.displayMedium,
-        ),
-        content: Text(
-          isHost
-              ? 'Are you sure? This will terminate the room for everyone.'
-              : 'Are you sure you want to leave this game?',
-          style: Theme.of(context).textTheme.titleLarge,
-          textAlign: TextAlign.center,
-        ),
-        actions: [
-          GameButton(
-            label: 'CANCEL',
-            type: GameButtonType.warning,
-            onPressed: () => Navigator.of(ctx).pop(),
-          ),
-          GameButton(
-            label: isHost ? 'TERMINATE' : 'LEAVE',
-            type: GameButtonType.primary,
-            onPressed: () async {
-              Navigator.of(ctx).pop();
-              if (isHost) {
-                await _gameService.terminateRoom(widget.roomCode);
-                if (context.mounted) {
-                  // Host goes back to lobby (service reset the status to 'lobby')
-                  context.go('/lobby/${widget.roomCode}');
-                }
-              } else {
-                await _gameService.leaveRoom(widget.roomCode);
-                if (context.mounted) {
-                  context.go('/');
-                }
-              }
-            },
-
-          ),
-        ],
-      ),
-    );
   }
 }

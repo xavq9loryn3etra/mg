@@ -1,14 +1,12 @@
 class GameConfig {
-  final bool hasMafia1;
-  final bool hasMafia2;
+  final int mafiaCount;
   final bool hasDoctor;
   final bool hasGodfather;
   final bool hasDetective;
   final bool hasRabidDog;
 
   GameConfig({
-    required this.hasMafia1,
-    required this.hasMafia2,
+    required this.mafiaCount,
     required this.hasDoctor,
     required this.hasGodfather,
     required this.hasDetective,
@@ -17,8 +15,7 @@ class GameConfig {
 
   factory GameConfig.fromJson(Map<dynamic, dynamic> json) {
     return GameConfig(
-      hasMafia1: json['hasMafia1'] ?? true,
-      hasMafia2: json['hasMafia2'] ?? true,
+      mafiaCount: json['mafiaCount'] ?? 2,
       hasDoctor: json['hasDoctor'] ?? true,
       hasGodfather: json['hasGodfather'] ?? true,
       hasDetective: json['hasDetective'] ?? true,
@@ -28,8 +25,7 @@ class GameConfig {
 
   Map<String, dynamic> toJson() {
     return {
-      'hasMafia1': hasMafia1,
-      'hasMafia2': hasMafia2,
+      'mafiaCount': mafiaCount,
       'hasDoctor': hasDoctor,
       'hasGodfather': hasGodfather,
       'hasDetective': hasDetective,

@@ -75,8 +75,8 @@ class RoomCodeInputState extends State<RoomCodeInput> {
     _updateParent();
   }
 
-  void _handleKeyPress(RawKeyEvent event, int index) {
-    if (event is RawKeyDownEvent && event.logicalKey == LogicalKeyboardKey.backspace) {
+  void _handleKeyPress(KeyEvent event, int index) {
+    if (event is KeyDownEvent && event.logicalKey == LogicalKeyboardKey.backspace) {
       if (_controllers[index].text.isEmpty && index > 0) {
         _focusNodes[index - 1].requestFocus();
         _controllers[index - 1].clear();
@@ -94,16 +94,16 @@ class RoomCodeInputState extends State<RoomCodeInput> {
           width: 50,
           height: 60,
           decoration: BoxDecoration(
-            color: AppTheme.surface.withOpacity(0.51),
+            color: AppTheme.surface.withValues(alpha: 0.51),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: _focusNodes[index].hasFocus ? AppTheme.accent : AppTheme.surfaceStroke.withOpacity(0.5),
+              color: _focusNodes[index].hasFocus ? AppTheme.accent : AppTheme.surfaceStroke.withValues(alpha: 0.5),
               width: 2,
             ),
           ),
-          child: RawKeyboardListener(
+          child: KeyboardListener(
             focusNode: FocusNode(), // Dummy for listeneing backspace even when TextField hasn't focused
-            onKey: (event) => _handleKeyPress(event, index),
+            onKeyEvent: (event) => _handleKeyPress(event, index),
             child: TextField(
               focusNode: _focusNodes[index],
               controller: _controllers[index],

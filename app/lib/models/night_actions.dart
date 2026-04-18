@@ -4,6 +4,7 @@ class NightActions {
   final String? dogTarget;
   final String? detectiveScan;
   final bool detectiveScanResolved;
+  final String? detectiveScanResult;
   final Map<String, String> mafiaVotes;
 
   NightActions({
@@ -12,6 +13,7 @@ class NightActions {
     this.dogTarget,
     this.detectiveScan,
     this.detectiveScanResolved = false,
+    this.detectiveScanResult,
     this.mafiaVotes = const {},
   });
 
@@ -30,6 +32,7 @@ class NightActions {
       dogTarget: json['dogTarget'] as String?,
       detectiveScan: json['detectiveScan'] as String?,
       detectiveScanResolved: json['detectiveScanResolved'] ?? false,
+      detectiveScanResult: json['detectiveScanResult'] as String?,
       mafiaVotes: votes,
     );
   }

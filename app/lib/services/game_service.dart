@@ -8,8 +8,8 @@ class GameService {
 
   String? get _uid => _auth.currentUser?.uid;
 
-  /// Check if the user has an active session and return the room code if valid
-  Future<String?> checkActiveSession() async {
+  /// Check if the user has an active session and return the room code and status if valid
+  Future<Map<String, String>?> checkActiveSession() async {
     final uid = _uid;
     if (uid == null) return null;
 
@@ -28,12 +28,17 @@ class GameService {
     }
 
     final roomData = roomSnap.value as Map<dynamic, dynamic>;
-    if (roomData['status'] == 'game_over') {
+    final status = roomData['status'] as String? ?? 'lobby';
+    
+    if (status == 'game_over') {
       await _db.ref('user_sessions/$uid').remove();
       return null;
     }
 
-    return roomCode;
+    return {
+      'roomCode': roomCode,
+      'status': status,
+    };
   }
 
   Future<void> _updateLastActive(String roomCode) async {
@@ -57,7 +62,7 @@ class GameService {
 
     final roomCode = _generateRoomCode();
 
-    final timestamp = ServerValue.timestamp;
+    const timestamp = ServerValue.timestamp;
     await _db.ref('rooms/$roomCode').set({
       'status': 'lobby',
       'hostId': uid,
@@ -66,8 +71,7 @@ class GameService {
       'morningAnnouncement': null,
       'winner': null,
       'config': {
-        'hasMafia1': true,
-        'hasMafia2': true,
+        'mafiaCount': 2,
         'hasDoctor': true,
         'hasGodfather': true,
         'hasDetective': true,
@@ -167,8 +171,7 @@ class GameService {
   /// Update game configuration (mafia count, rabid dog toggle).
   Future<void> configureGame(
     String roomCode, {
-    required bool hasMafia1,
-    required bool hasMafia2,
+    required int mafiaCount,
     required bool hasDoctor,
     required bool hasGodfather,
     required bool hasDetective,
@@ -185,8 +188,7 @@ class GameService {
     if (room['status'] != 'lobby') throw Exception('Game already started.');
 
     await _db.ref('rooms/$roomCode/config').update({
-      'hasMafia1': hasMafia1,
-      'hasMafia2': hasMafia2,
+      'mafiaCount': mafiaCount,
       'hasDoctor': hasDoctor,
       'hasGodfather': hasGodfather,
       'hasDetective': hasDetective,
@@ -217,8 +219,12 @@ class GameService {
     if (config['hasGodfather'] ?? true) roles.add('godfather');
     if (config['hasDoctor'] ?? true) roles.add('doctor');
     if (config['hasDetective'] ?? true) roles.add('detective');
-    if (config['hasMafia1'] ?? true) roles.add('mafia');
-    if (config['hasMafia2'] ?? true) roles.add('mafia');
+    
+    final mafiaCount = (config['mafiaCount'] as int?) ?? 2;
+    for (var i = 0; i < mafiaCount; i++) {
+      roles.add('mafia');
+    }
+
     if (config['hasRabidDog'] ?? false) roles.add('rabid_dog');
 
     // Fill the rest with villagers
@@ -245,7 +251,6 @@ class GameService {
       updates['players/$roomCode/$id/isAlive'] = true;
       updates['players/$roomCode/$id/isReady'] = false;
       updates['player_names/$roomCode/$id/isAlive'] = true;
-      updates['player_names/$roomCode/$id/role'] = roles[i];
       updates['player_names/$roomCode/$id/isReady'] = false;
     }
 
@@ -428,7 +433,22 @@ class GameService {
     final nightSnap = await _db.ref('rooms/$roomCode/nightCount').get();
     final nightCount = nightSnap.value as int? ?? 0;
     
-    await _db.ref('night_actions/$roomCode/$nightCount/detectiveScanResolved').set(true);
+    // Look up who the detective scanned and compute the result
+    final scanSnap = await _db.ref('night_actions/$roomCode/$nightCount/detectiveScan').get();
+    final targetId = scanSnap.value as String?;
+    
+    String scanResult = 'villager';
+    if (targetId != null) {
+      final targetSnap = await _db.ref('players/$roomCode/$targetId/role').get();
+      final targetRole = targetSnap.value as String? ?? 'villager';
+      // Detective only identifies 'mafia'. Godfather, doctor, dog, villager all show as 'villager'.
+      scanResult = (targetRole == 'mafia') ? 'mafia' : 'villager';
+    }
+    
+    await _db.ref('night_actions/$roomCode/$nightCount').update({
+      'detectiveScanResolved': true,
+      'detectiveScanResult': scanResult,
+    });
   }
 
 
@@ -611,6 +631,16 @@ class GameService {
           'The village has voted to eliminate someone.';
     }
 
+    // Check win condition after the vote elimination
+    final winUpdates = await _getWinConditionUpdates(roomCode, updates);
+    if (winUpdates != null) {
+      updates.addAll(winUpdates);
+    } else {
+      updates['rooms/$roomCode/status'] = 'night';
+      updates['rooms/$roomCode/nightCount'] = (room['nightCount'] as int) + 1;
+      updates['rooms/$roomCode/activeRole'] = null;
+    }
+
     // Group all updates into a single atomic multi-path update
     await _db.ref().update(updates);
   }
@@ -674,26 +704,27 @@ class GameService {
     }
 
     if (mafiaCount == 0) {
-      return {
+      // Game over: reveal all roles to the public player_names node
+      final revealUpdates = <String, dynamic>{
         'rooms/$roomCode/status': 'game_over',
         'rooms/$roomCode/winner': 'village',
       };
-    } else if (villageCount == 0) {
-      return {
+      for (final entry in players.entries) {
+        revealUpdates['player_names/$roomCode/${entry.key}/role'] = entry.value['role'];
+      }
+      return revealUpdates;
+    } else if (mafiaCount >= villageCount) {
+      // Game over: reveal all roles to the public player_names node
+      final revealUpdates = <String, dynamic>{
         'rooms/$roomCode/status': 'game_over',
         'rooms/$roomCode/winner': 'mafia',
       };
+      for (final entry in players.entries) {
+        revealUpdates['player_names/$roomCode/${entry.key}/role'] = entry.value['role'];
+      }
+      return revealUpdates;
     }
     return null;
-  }
-
-  /// Check if the game has ended (mafia eliminated or mafia >= villagers).
-  /// This version is for standalone checks (rarely used now with atomic updates).
-  Future<void> _checkWinCondition(String roomCode) async {
-    final updates = await _getWinConditionUpdates(roomCode);
-    if (updates != null) {
-      await _db.ref().update(updates);
-    }
   }
 
   /// Clear the current user's session so they don't auto-reconnect to the room.
@@ -736,7 +767,7 @@ class GameService {
         updates['players/$roomCode/$uid/isAlive'] = true;
         updates['players/$roomCode/$uid/isAbandoned'] = false;
         
-        updates['player_names/$roomCode/$uid/role'] = 'unassigned';
+        updates['player_names/$roomCode/$uid/role'] = null;
         updates['player_names/$roomCode/$uid/isReady'] = false;
         updates['player_names/$roomCode/$uid/isAlive'] = true;
         updates['player_names/$roomCode/$uid/isAbandoned'] = false;
@@ -811,9 +842,6 @@ class GameService {
           'player_names/$roomCode/$uid/isAbandoned': true,
         };
         await _db.ref().update(updates);
-        
-        // Check win conditions immediately in case this death ends the game
-        await _checkWinCondition(roomCode);
       }
 
     }

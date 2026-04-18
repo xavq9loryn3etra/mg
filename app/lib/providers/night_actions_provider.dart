@@ -1,7 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/night_actions.dart';
 import 'room_provider.dart';
-import 'game_provider.dart';
 
 final nightActionsProvider = StreamProvider<NightActions?>((ref) {
   final roomCode = ref.watch(currentRoomCodeProvider);

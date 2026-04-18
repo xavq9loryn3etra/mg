@@ -5,7 +5,6 @@ import '../providers/room_provider.dart';
 import '../providers/player_provider.dart';
 import '../providers/game_provider.dart';
 import '../services/game_service.dart';
-import '../widgets/gamified_screen.dart';
 import '../widgets/game_button.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/mafia_loader.dart';
@@ -34,49 +33,6 @@ class _DayScreenState extends ConsumerState<DayScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(currentRoomCodeProvider.notifier).setCode(widget.roomCode);
     });
-  }
-
-  void _showExitConfirmation(BuildContext context, bool isHost) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(isHost ? 'Terminate Game?' : 'Leave Game?', style: Theme.of(context).textTheme.displayMedium),
-        content: Text(
-          isHost 
-            ? 'Are you sure? This will terminate the room for everyone.' 
-            : 'Are you sure you want to leave this game?',
-          style: Theme.of(context).textTheme.titleLarge,
-          textAlign: TextAlign.center,
-        ),
-        actions: [
-          GameButton(
-            label: 'CANCEL',
-            type: GameButtonType.warning,
-            onPressed: () => Navigator.of(ctx).pop(),
-          ),
-          GameButton(
-            label: isHost ? 'TERMINATE' : 'LEAVE',
-            type: GameButtonType.primary,
-            onPressed: () async {
-              Navigator.of(ctx).pop();
-              if (isHost) {
-                await _gameService.terminateRoom(widget.roomCode);
-                if (context.mounted) {
-                  // Host goes back to lobby
-                  context.go('/lobby/${widget.roomCode}');
-                }
-              } else {
-                await _gameService.leaveRoom(widget.roomCode);
-                if (context.mounted) {
-                  context.go('/');
-                }
-              }
-            },
-
-          ),
-        ],
-      ),
-    );
   }
 
   @override
@@ -161,7 +117,7 @@ class _DayScreenState extends ConsumerState<DayScreen> {
         data: (room) {
           if (room == null) return const Center(child: Text("Loading..."));
 
-          final votesRaw = room.votes ?? {};
+          final votesRaw = room.votes;
           final voteCount = votesRaw.length;
 
           return Column(
@@ -173,7 +129,7 @@ class _DayScreenState extends ConsumerState<DayScreen> {
               
               GlassCard(
                 padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 24),
-                borderColor: AppTheme.accent.withOpacity(0.5),
+                borderColor: AppTheme.accent.withValues(alpha: 0.5),
                 child: Column(
                   children: [
                     Text(
@@ -210,9 +166,9 @@ class _DayScreenState extends ConsumerState<DayScreen> {
                           return Container(
                             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                             decoration: BoxDecoration(
-                              color: AppTheme.primary.withOpacity(0.2),
+                              color: AppTheme.primary.withValues(alpha: 0.2),
                               borderRadius: BorderRadius.circular(20),
-                              border: Border.all(color: AppTheme.primary.withOpacity(0.5)),
+                              border: Border.all(color: AppTheme.primary.withValues(alpha: 0.5)),
                             ),
                             child: Text(
                               "VOTES: $voteCount / $aliveCount",
@@ -337,9 +293,9 @@ class _DayScreenState extends ConsumerState<DayScreen> {
                                                 Container(
                                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                                   decoration: BoxDecoration(
-                                                    color: AppTheme.success.withOpacity(0.2),
+                                                    color: AppTheme.success.withValues(alpha: 0.2),
                                                     borderRadius: BorderRadius.circular(4),
-                                                    border: Border.all(color: AppTheme.success.withOpacity(0.5)),
+                                                    border: Border.all(color: AppTheme.success.withValues(alpha: 0.5)),
                                                   ),
                                                   child: const Text("YOUR CHOICE", style: TextStyle(color: AppTheme.success, fontSize: 10, fontWeight: FontWeight.bold)),
                                                 ),
@@ -354,7 +310,7 @@ class _DayScreenState extends ConsumerState<DayScreen> {
                                               children: voters.map((v) => Container(
                                                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                                 decoration: BoxDecoration(
-                                                  color: Colors.white.withOpacity(0.05),
+                                                  color: Colors.white.withValues(alpha: 0.05),
                                                   borderRadius: BorderRadius.circular(4),
                                                 ),
                                                 child: Text(v, style: const TextStyle(color: Colors.white38, fontSize: 10)),
@@ -368,9 +324,9 @@ class _DayScreenState extends ConsumerState<DayScreen> {
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                                         decoration: BoxDecoration(
-                                          color: isLeading ? AppTheme.primary.withOpacity(0.2) : Colors.white.withOpacity(0.05),
+                                          color: isLeading ? AppTheme.primary.withValues(alpha: 0.2) : Colors.white.withValues(alpha: 0.05),
                                           borderRadius: BorderRadius.circular(8),
-                                          border: Border.all(color: isLeading ? AppTheme.primary.withOpacity(0.5) : Colors.transparent),
+                                          border: Border.all(color: isLeading ? AppTheme.primary.withValues(alpha: 0.5) : Colors.transparent),
                                         ),
                                         child: Column(
                                           children: [

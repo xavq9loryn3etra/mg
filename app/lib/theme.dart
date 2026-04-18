@@ -65,7 +65,7 @@ class AppTheme {
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: const Color(0xFF5A189A).withOpacity(0.5),
+        fillColor: const Color(0xFF5A189A).withValues(alpha: 0.5),
         contentPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 18),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
@@ -92,7 +92,7 @@ class AppTheme {
         contentTextStyle: GoogleFonts.nunito(fontSize: 18, color: textMain, fontWeight: FontWeight.bold),
       ),
       scrollbarTheme: ScrollbarThemeData(
-        thumbColor: WidgetStateProperty.all(surfaceStroke.withOpacity(0.8)),
+        thumbColor: WidgetStateProperty.all(surfaceStroke.withValues(alpha: 0.8)),
         trackColor: WidgetStateProperty.all(Colors.transparent),
         radius: const Radius.circular(8),
         thickness: WidgetStateProperty.all(6),

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'audio_provider.dart';
 import '../router.dart';
-import 'package:go_router/go_router.dart';
 
 final appLifecycleProvider = Provider((ref) {
   final observer = _AppLifecycleObserver(ref);
@@ -29,7 +28,7 @@ class _AppLifecycleObserver extends WidgetsBindingObserver {
       // We check the router's current location to be safe
       try {
         final router = _ref.read(routerProvider);
-        final location = router.state?.uri.path ?? '/';
+        final location = router.state.uri.path;
         
         // Music only on Splash (/) or Home (/) - EntranceWrapper handles both
         if (location == '/' || location == '/tutorial') {

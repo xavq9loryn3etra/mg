@@ -4,7 +4,6 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import 'providers/auth_provider.dart';
 import 'providers/room_provider.dart';
-import 'screens/home_screen.dart';
 import 'screens/lobby_screen.dart';
 import 'screens/role_reveal_screen.dart';
 import 'screens/night_screen.dart';
@@ -13,7 +12,6 @@ import 'screens/game_over_screen.dart';
 import 'screens/waiting_screen.dart';
 import 'screens/tutorial_screen.dart';
 import 'screens/entrance_wrapper.dart';
-import 'providers/app_provider.dart';
 
 /// Dramatic fade + scale transition for major phase changes
 CustomTransitionPage<void> _buildTransition({
@@ -52,7 +50,6 @@ CustomTransitionPage<void> _buildTransition({
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
-  final hasSeenTutorial = ref.watch(tutorialSeenProvider);
 
   return GoRouter(
     initialLocation: '/',

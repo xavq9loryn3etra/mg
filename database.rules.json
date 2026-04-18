@@ -1,11 +1,82 @@
 {
   "rules": {
-    ".read": "auth != null",
-    ".write": "auth != null",
+    "rooms": {
+      "$roomCode": {
+        ".read": "auth != null",
+        ".write": "auth != null && (!data.exists() || data.child('hostId').val() === auth.uid)",
+        "votes": {
+          "$uid": {
+            ".write": "auth != null && auth.uid === $uid"
+          }
+        }
+      }
+    },
+
+    "user_sessions": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && (auth.uid === $uid || root.child('rooms').child(data.child('roomCode').val()).child('hostId').val() === auth.uid)"
+      }
+    },
+
+    "pending_players": {
+      "$roomCode": {
+        ".read": "auth != null && root.child('rooms/' + $roomCode + '/hostId').val() === auth.uid",
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid",
+          ".write": "auth != null && (auth.uid === $uid || root.child('rooms/' + $roomCode + '/hostId').val() === auth.uid)"
+        }
+      }
+    },
+
+    "players": {
+      "$roomCode": {
+        ".read": "auth != null && root.child('rooms/' + $roomCode + '/hostId').val() === auth.uid",
+        ".write": "auth != null && root.child('rooms/' + $roomCode + '/hostId').val() === auth.uid",
+        "$uid": {
+          ".read": "auth != null && auth.uid === $uid",
+          ".write": "auth != null && auth.uid === $uid"
+        }
+      }
+    },
+
+    "player_names": {
+      "$roomCode": {
+        ".read": "auth != null",
+        ".write": "auth != null && root.child('rooms/' + $roomCode + '/hostId').val() === auth.uid",
+        "$uid": {
+          ".write": "auth != null && (auth.uid === $uid || root.child('rooms/' + $roomCode + '/hostId').val() === auth.uid)"
+        }
+      }
+    },
+
+    "night_actions": {
+      "$roomCode": {
+        ".read": "auth != null",
+        ".write": "auth != null && root.child('rooms/' + $roomCode + '/hostId').val() === auth.uid",
+        "$nightCount": {
+          "mafiaVotes": {
+            "$uid": {
+              ".write": "auth != null && auth.uid === $uid"
+            }
+          },
+          "doctorTarget": {
+            ".write": "auth != null && root.child('players/' + $roomCode + '/' + auth.uid + '/role').val() === 'doctor'"
+          },
+          "dogTarget": {
+            ".write": "auth != null && root.child('players/' + $roomCode + '/' + auth.uid + '/role').val() === 'rabid_dog'"
+          },
+          "detectiveScan": {
+            ".write": "auth != null && root.child('players/' + $roomCode + '/' + auth.uid + '/role').val() === 'detective'"
+          }
+        }
+      }
+    },
+
     "mafia_teams": {
       "$roomCode": {
         ".read": "auth != null && (root.child('players/' + $roomCode + '/' + auth.uid + '/role').val() === 'mafia' || root.child('players/' + $roomCode + '/' + auth.uid + '/role').val() === 'godfather')",
-        ".write": "auth != null"
+        ".write": "auth != null && root.child('rooms/' + $roomCode + '/hostId').val() === auth.uid"
       }
     }
   }

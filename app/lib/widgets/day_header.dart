@@ -51,7 +51,7 @@ class _DayHeaderState extends State<DayHeader> with SingleTickerProviderStateMix
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: AppTheme.accent.withOpacity(0.3 * _pulseAnimation.value),
+                    color: AppTheme.accent.withValues(alpha: 0.3 * _pulseAnimation.value),
                     blurRadius: 40 * _pulseAnimation.value,
                     spreadRadius: 10 * _pulseAnimation.value,
                   ),
@@ -64,7 +64,7 @@ class _DayHeaderState extends State<DayHeader> with SingleTickerProviderStateMix
               child: Icon(
                 Icons.wb_sunny_outlined,
                 size: 90 * _pulseAnimation.value,
-                color: AppTheme.accent.withOpacity(0.5),
+                color: AppTheme.accent.withValues(alpha: 0.5),
               ),
             ),
             // The Sun core

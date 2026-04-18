@@ -8,9 +8,8 @@ import '../providers/game_provider.dart';
 import '../models/game_config.dart';
 import '../providers/auth_provider.dart';
 import '../services/game_service.dart';
-
 import '../providers/audio_provider.dart';
-import '../widgets/gamified_screen.dart';
+
 import '../widgets/game_button.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/mafia_loader.dart';
@@ -32,8 +31,7 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
   bool _initialized = false;
 
   // Role Toggles
-  bool _hasMafia1 = true;
-  bool _hasMafia2 = true;
+  int _mafiaCount = 2;
   bool _hasGodfather = true;
   bool _hasDoctor = true;
   bool _hasDetective = true;
@@ -42,8 +40,7 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
   void _syncConfig(GameConfig config) {
     if (_initialized) return;
     setState(() {
-      _hasMafia1 = config.hasMafia1;
-      _hasMafia2 = config.hasMafia2;
+      _mafiaCount = config.mafiaCount;
       _hasGodfather = config.hasGodfather;
       _hasDoctor = config.hasDoctor;
       _hasDetective = config.hasDetective;
@@ -55,8 +52,7 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
   void _updateConfig() {
     _gameService.configureGame(
       widget.roomCode,
-      hasMafia1: _hasMafia1,
-      hasMafia2: _hasMafia2,
+      mafiaCount: _mafiaCount,
       hasGodfather: _hasGodfather,
       hasDoctor: _hasDoctor,
       hasDetective: _hasDetective,
@@ -96,9 +92,9 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
               return Container(
                 margin: const EdgeInsets.only(bottom: 8),
                 decoration: BoxDecoration(
-                  color: AppTheme.warning.withOpacity(0.1),
+                  color: AppTheme.warning.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: AppTheme.warning.withOpacity(0.5), width: 1),
+                  border: Border.all(color: AppTheme.warning.withValues(alpha: 0.5), width: 1),
                 ),
                 padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                 child: Row(
@@ -115,7 +111,7 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
                   ],
                 ),
               );
-            }).toList(),
+            }),
             const SizedBox(height: 24),
           ],
         );
@@ -168,7 +164,9 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
       ),
       content: roomAsync.when(
         data: (room) {
-          if (room == null) return const Center(child: Text("Room not found"));
+          if (room == null) {
+            return const Center(child: Text("Room not found"));
+          }
           return Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             mainAxisSize: MainAxisSize.min,
@@ -182,8 +180,7 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
                       Text('GAME SETTINGS', style: theme.textTheme.titleMedium?.copyWith(color: AppTheme.accent), textAlign: TextAlign.center),
                       const SizedBox(height: 12),
                       _buildRoleToggle('Godfather', _hasGodfather, (val) => setState(() { _hasGodfather = val; _updateConfig(); }), theme),
-                      _buildRoleToggle('Mafia 1', _hasMafia1, (val) => setState(() { _hasMafia1 = val; _updateConfig(); }), theme),
-                      _buildRoleToggle('Mafia 2', _hasMafia2, (val) => setState(() { _hasMafia2 = val; _updateConfig(); }), theme),
+                      _buildMafiaCountSelector(theme),
                       _buildRoleToggle('Doctor', _hasDoctor, (val) => setState(() { _hasDoctor = val; _updateConfig(); }), theme),
                       _buildRoleToggle('Rabid Dog', _hasRabidDog, (val) => setState(() { _hasRabidDog = val; _updateConfig(); }), theme),
                       _buildRoleToggle('Detective', _hasDetective, (val) => setState(() { _hasDetective = val; _updateConfig(); }), theme),
@@ -219,7 +216,7 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
                           final isMe = entry.key == uid;
                           return Container(
                             decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.1),
+                              color: Colors.white.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(color: Colors.white24, width: 2),
                             ),
@@ -248,9 +245,52 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
     return SwitchListTile(
       contentPadding: EdgeInsets.zero,
       title: Text(title, style: theme.textTheme.bodyLarge),
-      activeColor: AppTheme.success,
+      activeThumbColor: AppTheme.success,
       value: value,
       onChanged: onChanged,
+    );
+  }
+
+  Widget _buildMafiaCountSelector(ThemeData theme) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text('Mafia Members', style: theme.textTheme.bodyLarge),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                icon: Icon(
+                  Icons.remove_circle_outline, 
+                  color: _mafiaCount > 1 ? AppTheme.warning : Colors.white24
+                ),
+                onPressed: _mafiaCount > 1 ? () {
+                  setState(() { _mafiaCount--; _updateConfig(); });
+                } : null,
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                child: Text('$_mafiaCount', style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold)),
+              ),
+              IconButton(
+                padding: EdgeInsets.zero,
+                constraints: const BoxConstraints(),
+                icon: Icon(
+                  Icons.add_circle_outline, 
+                  color: _mafiaCount < 5 ? AppTheme.success : Colors.white24
+                ),
+                onPressed: _mafiaCount < 5 ? () {
+                  setState(() { _mafiaCount++; _updateConfig(); });
+                } : null,
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
@@ -268,21 +308,23 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
     return playersAsync.when(
       data: (playersMap) {
         final playersCount = playersMap.length;
-        final enabledRoles = [
-          _hasMafia1, _hasMafia2, _hasGodfather, _hasDoctor, _hasDetective, _hasRabidDog
+        final enabledSpecialRoles = [
+          _hasGodfather, _hasDoctor, _hasDetective, _hasRabidDog
         ].where((e) => e).length;
+        
+        final totalRolesNeeded = enabledSpecialRoles + _mafiaCount;
 
-        final canStart = playersCount >= enabledRoles && enabledRoles > 0;
+        final canStart = playersCount >= totalRolesNeeded && totalRolesNeeded > 0;
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           mainAxisSize: MainAxisSize.min,
           children: [
-            if (!canStart && enabledRoles > 0)
+            if (!canStart && totalRolesNeeded > 0)
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Text(
-                  "Need at least $enabledRoles players for current settings!",
+                  "Need at least $totalRolesNeeded players for current settings!",
                   style: const TextStyle(color: AppTheme.warning, fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,
                 ),

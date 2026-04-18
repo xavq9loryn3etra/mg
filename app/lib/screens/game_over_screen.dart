@@ -5,7 +5,6 @@ import '../providers/room_provider.dart';
 import '../providers/game_provider.dart';
 import '../providers/player_provider.dart';
 import '../services/game_service.dart';
-import '../widgets/gamified_screen.dart';
 import '../widgets/game_button.dart';
 import '../widgets/mafia_loader.dart';
 import '../widgets/game_layout.dart';
@@ -99,7 +98,7 @@ class _GameOverScreenState extends ConsumerState<GameOverScreen> {
                     style: theme.textTheme.displayLarge?.copyWith(
                       letterSpacing: 8,
                       color: iWon ? accentColor : Colors.white38,
-                      shadows: iWon ? [Shadow(color: accentColor.withOpacity(0.5), blurRadius: 30)] : [],
+                      shadows: iWon ? [Shadow(color: accentColor.withValues(alpha: 0.5), blurRadius: 30)] : [],
                     ),
                     textAlign: TextAlign.center,
                   ),
@@ -121,7 +120,7 @@ class _GameOverScreenState extends ConsumerState<GameOverScreen> {
                 // Result Card (For Everyone)
                 GlassCard(
                   padding: const EdgeInsets.all(32),
-                  borderColor: accentColor.withOpacity(0.3),
+                  borderColor: accentColor.withValues(alpha: 0.3),
                   child: Column(
                     children: [
                       Text(
@@ -130,7 +129,7 @@ class _GameOverScreenState extends ConsumerState<GameOverScreen> {
                           color: accentColor,
                           fontSize: 56,
                           fontWeight: FontWeight.w900,
-                          shadows: [Shadow(color: accentColor.withOpacity(0.8), blurRadius: 40)],
+                          shadows: [Shadow(color: accentColor.withValues(alpha: 0.8), blurRadius: 40)],
                         ),
                       ),
                       const SizedBox(height: 8),
@@ -168,7 +167,7 @@ class _GameOverScreenState extends ConsumerState<GameOverScreen> {
                         
                         return GlassCard(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          borderColor: roleColor.withOpacity(0.2),
+                          borderColor: roleColor.withValues(alpha: 0.2),
                           child: Row(
                             children: [
                               Expanded(
@@ -184,9 +183,9 @@ class _GameOverScreenState extends ConsumerState<GameOverScreen> {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: roleColor.withOpacity(0.1),
+                                  color: roleColor.withValues(alpha: 0.1),
                                   borderRadius: BorderRadius.circular(6),
-                                  border: Border.all(color: roleColor.withOpacity(0.4)),
+                                  border: Border.all(color: roleColor.withValues(alpha: 0.4)),
                                 ),
                                 child: Text(
                                   p.role.toUpperCase().replaceAll('_', ' '),

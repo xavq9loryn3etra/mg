@@ -20,12 +20,11 @@ class SettingsHUD extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final isMuted = ref.watch(isMutedProvider);
-    final theme = Theme.of(context);
     final screenWidth = MediaQuery.of(context).size.width;
 
     // Sync with GlassCard's radius and closed position
     // Adjusted so the higher banner remains as the handle peek
-    final closedTop = -165.0;
+    const closedTop = -165.0;
 
     return Stack(
       children: [
@@ -40,7 +39,7 @@ class SettingsHUD extends ConsumerWidget {
               child: Container(
                 width: double.infinity,
                 height: double.infinity,
-                color: Colors.black.withOpacity(0.6),
+                color: Colors.black.withValues(alpha: 0.6),
               ),
             ),
           ),
@@ -84,7 +83,7 @@ class SettingsHUD extends ConsumerWidget {
                           12,
                         ),
                         decoration: BoxDecoration(
-                          color: AppTheme.surface.withOpacity(0.85),
+                          color: AppTheme.surface.withValues(alpha: 0.85),
                           borderRadius: const BorderRadius.vertical(
                             bottom: Radius.circular(24),
                           ),
@@ -137,7 +136,7 @@ class SettingsHUD extends ConsumerWidget {
                                 width: 36,
                                 height: 4,
                                 decoration: BoxDecoration(
-                                  color: Colors.white.withOpacity(0.15),
+                                  color: Colors.white.withValues(alpha: 0.15),
                                   borderRadius: BorderRadius.circular(2),
                                 ),
                               ),
@@ -224,10 +223,10 @@ class _HUDItem extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 4),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
-          color: AppTheme.surfaceStroke.withOpacity(0.4),
+          color: AppTheme.surfaceStroke.withValues(alpha: 0.4),
           width: 1.5,
         ),
       ),

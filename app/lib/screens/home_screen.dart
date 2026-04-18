@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../services/game_service.dart';
@@ -9,7 +8,6 @@ import '../widgets/game_button.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/room_code_input.dart';
 import '../widgets/settings_hud.dart';
-import '../providers/audio_provider.dart';
 import '../theme.dart';
 
 class HomeScreen extends ConsumerStatefulWidget {

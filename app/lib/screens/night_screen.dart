@@ -7,9 +7,7 @@ import '../models/player.dart';
 import '../providers/game_provider.dart';
 
 import '../services/game_service.dart';
-import '../models/night_actions.dart';
 import '../providers/night_actions_provider.dart';
-import '../widgets/gamified_screen.dart';
 import '../widgets/game_button.dart';
 import '../widgets/glass_card.dart';
 import '../widgets/mafia_loader.dart';
@@ -37,49 +35,6 @@ class _NightScreenState extends ConsumerState<NightScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(currentRoomCodeProvider.notifier).setCode(widget.roomCode);
     });
-  }
-
-  void _showExitConfirmation(BuildContext context, bool isHost) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text(isHost ? 'Terminate Game?' : 'Leave Game?', style: Theme.of(context).textTheme.displayMedium),
-        content: Text(
-          isHost 
-            ? 'Are you sure? This will terminate the room for everyone.' 
-            : 'Are you sure you want to leave this game?',
-          style: Theme.of(context).textTheme.titleLarge,
-          textAlign: TextAlign.center,
-        ),
-        actions: [
-          GameButton(
-            label: 'CANCEL',
-            type: GameButtonType.warning,
-            onPressed: () => Navigator.of(ctx).pop(),
-          ),
-          GameButton(
-            label: isHost ? 'TERMINATE' : 'LEAVE',
-            type: GameButtonType.primary,
-            onPressed: () async {
-              Navigator.of(ctx).pop();
-              if (isHost) {
-                await _gameService.terminateRoom(widget.roomCode);
-                if (context.mounted) {
-                  // Host goes back to lobby
-                  context.go('/lobby/${widget.roomCode}');
-                }
-              } else {
-                await _gameService.leaveRoom(widget.roomCode);
-                if (context.mounted) {
-                  context.go('/');
-                }
-              }
-            },
-
-          ),
-        ],
-      ),
-    );
   }
 
   @override
@@ -163,17 +118,26 @@ class _NightScreenState extends ConsumerState<NightScreen> {
     if (!isHost) {
       final me = myPlayerAsync.value;
       if (me != null) {
-        if (!me.isAlive) isSingleCardState = true;
-        else if (isMyTurn) {
+        if (!me.isAlive) {
+          isSingleCardState = true;
+        } else if (isMyTurn) {
           final nightActions = nightActionsAsync.value;
           bool hasTarget = false;
-          if (me.role == 'doctor') hasTarget = nightActions?.doctorTarget != null;
-          else if (me.role == 'rabid_dog') hasTarget = nightActions?.dogTarget != null;
-          else if (me.role == 'detective') hasTarget = nightActions?.detectiveScan != null;
-          else if (me.role == 'mafia' || me.role == 'godfather') hasTarget = nightActions?.mafiaVotes[me.id] != null;
+          if (me.role == 'doctor') {
+            hasTarget = nightActions?.doctorTarget != null;
+          } else if (me.role == 'rabid_dog') {
+            hasTarget = nightActions?.dogTarget != null;
+          } else if (me.role == 'detective') {
+            hasTarget = nightActions?.detectiveScan != null;
+          } else if (me.role == 'mafia' || me.role == 'godfather') {
+            hasTarget = nightActions?.mafiaVotes[me.id] != null;
+          }
           
-          if (hasTarget) isSingleCardState = true;
-          else isSingleCardState = false; // Picking targets needs scrolling
+          if (hasTarget) {
+            isSingleCardState = true;
+          } else {
+            isSingleCardState = false; // Picking targets needs scrolling
+          }
         } else {
           isSingleCardState = true; // Sleeping
         }
@@ -194,11 +158,11 @@ class _NightScreenState extends ConsumerState<NightScreen> {
           if (isHost) {
             final config = room.config;
             
-            return playersAsync.when(
+            return ref.watch(allPlayersProvider).when(
               data: (playersMap) {
                 final players = playersMap.values.toList();
                 
-                List<PlayerNameItem> getMembers(String role) {
+                List<Player> getMembers(String role) {
                   if (role == 'mafia') {
                     return players.where((p) => p.role == 'mafia' || p.role == 'godfather').toList();
                   }
@@ -209,7 +173,7 @@ class _NightScreenState extends ConsumerState<NightScreen> {
 
                 return Column(
                   children: [
-                    if (config.hasMafia1 || config.hasMafia2 || config.hasGodfather)
+                    if (config.mafiaCount > 0 || config.hasGodfather)
                       _buildControlCard(
                         theme: theme,
                         title: 'MAFIA',
@@ -338,9 +302,11 @@ class _NightScreenState extends ConsumerState<NightScreen> {
                     String? myTargetId;
                     bool isResolved = false;
 
-                    if (me.role == 'doctor') myTargetId = nightActions?.doctorTarget;
-                    else if (me.role == 'rabid_dog') myTargetId = nightActions?.dogTarget;
-                    else if (me.role == 'detective') {
+                    if (me.role == 'doctor') {
+                      myTargetId = nightActions?.doctorTarget;
+                    } else if (me.role == 'rabid_dog') {
+                      myTargetId = nightActions?.dogTarget;
+                    } else if (me.role == 'detective') {
                        myTargetId = nightActions?.detectiveScan;
                        isResolved = nightActions?.detectiveScanResolved ?? false;
                     } else if (me.role == 'mafia' || me.role == 'godfather') {
@@ -369,10 +335,8 @@ class _NightScreenState extends ConsumerState<NightScreen> {
                       }
 
                       if (me.role == 'detective' && isResolved) {
-                        final target = playersMap[myTargetId];
-                        final targetRole = target?.role ?? 'villager';
-                        // Detective only identifies 'mafia'. Everything else (villager, doctor, dog, and Godfather) is 'villager'.
-                        final isMafia = targetRole == 'mafia';
+                        final scanResult = nightActions?.detectiveScanResult ?? 'villager';
+                        final isMafia = scanResult == 'mafia';
                         final result = isMafia ? 'MAFIA' : 'VILLAGER';
 
                         return Center(
@@ -442,8 +406,7 @@ class _NightScreenState extends ConsumerState<NightScreen> {
                                 final isDead = !target.isAlive;
                                 bool isMyTeam = false;
                                 String? teamBadge;
-                                final iWon = (ref.read(roomStreamProvider).value?.winner == 'mafia' && (me.role == 'mafia' || me.role == 'godfather')) || (ref.read(roomStreamProvider).value?.winner == 'village' && !(me.role == 'mafia' || me.role == 'godfather'));
-                                if ((me.role == 'mafia' || me.role == 'godfather') && mafiaTeam.containsKey(target.id)) {
+                                if (me.role == 'mafia' || me.role == 'godfather') {
                                   isMyTeam = true;
                                   teamBadge = mafiaTeam[target.id]!.toUpperCase();
                                 }
@@ -452,9 +415,13 @@ class _NightScreenState extends ConsumerState<NightScreen> {
                                 final canSelect = !isDead && !isMyTeam && (!isSelf || canTargetSelf);
 
                                 String buttonLabel = target.name;
-                                if (isDead) buttonLabel += ' (DEAD)';
-                                else if (teamBadge != null) buttonLabel += ' ($teamBadge)';
-                                else if (isSelf) buttonLabel += ' (YOU)';
+                                 if (isDead) {
+                                   buttonLabel += ' (DEAD)';
+                                 } else if (teamBadge != null) {
+                                   buttonLabel += ' ($teamBadge)';
+                                 } else if (isSelf) {
+                                   buttonLabel += ' (YOU)';
+                                 }
 
                                 return GameButton(
                                   label: buttonLabel,
@@ -497,7 +464,7 @@ class _NightScreenState extends ConsumerState<NightScreen> {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    AnimateSleepMoon(),
+                    const AnimateSleepMoon(),
                     const SizedBox(height: 32),
                     Text('SHHH... SLEEPING', style: theme.textTheme.displayMedium?.copyWith(color: AppTheme.accent)),
                     const SizedBox(height: 16),
@@ -526,7 +493,7 @@ class _NightScreenState extends ConsumerState<NightScreen> {
   Widget _buildControlCard({
     required ThemeData theme,
     required String title,
-    required List<PlayerNameItem> members,
+    required List<Player> members,
     required Color color,
     required String? currentActiveRole,
     required VoidCallback onWake,
@@ -570,7 +537,7 @@ class _NightScreenState extends ConsumerState<NightScreen> {
                             letterSpacing: 1,
                           ),
                         );
-                      }).toList(),
+                      }),
                     ],
                   ),
                 ),
@@ -581,9 +548,9 @@ class _NightScreenState extends ConsumerState<NightScreen> {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.05),
+                color: Colors.white.withValues(alpha: 0.05),
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: color.withOpacity(0.3)),
+                border: Border.all(color: color.withValues(alpha: 0.3)),
               ),
               child: Row(
                 children: [
@@ -656,9 +623,10 @@ class _NightScreenState extends ConsumerState<NightScreen> {
 }
 
 class AnimateSleepMoon extends StatefulWidget {
+  const AnimateSleepMoon({super.key});
 
   @override
-  _AnimateSleepMoonState createState() => _AnimateSleepMoonState();
+  State<AnimateSleepMoon> createState() => _AnimateSleepMoonState();
 }
 
 class _AnimateSleepMoonState extends State<AnimateSleepMoon> with SingleTickerProviderStateMixin {

@@ -4,10 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../providers/player_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/room_provider.dart';
-import '../services/game_service.dart';
-import '../widgets/gamified_screen.dart';
 import '../widgets/glass_card.dart';
-import '../widgets/game_button.dart';
 import '../widgets/game_layout.dart';
 import '../widgets/game_app_bar.dart';
 import '../theme.dart';
@@ -23,7 +20,6 @@ class WaitingScreen extends ConsumerStatefulWidget {
 }
 
 class _WaitingScreenState extends ConsumerState<WaitingScreen> {
-  final _gameService = GameService();
 
   @override
   void initState() {
@@ -31,39 +27,6 @@ class _WaitingScreenState extends ConsumerState<WaitingScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       ref.read(currentRoomCodeProvider.notifier).setCode(widget.roomCode);
     });
-  }
-
-  void _showExitConfirmation(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: Text('Leave Game?', style: Theme.of(context).textTheme.displayMedium),
-        content: Text(
-          'Are you sure you want to cancel your join request?',
-          style: Theme.of(context).textTheme.titleLarge,
-          textAlign: TextAlign.center,
-        ),
-        actions: [
-          GameButton(
-            label: 'CANCEL',
-            type: GameButtonType.warning,
-            onPressed: () => Navigator.of(ctx).pop(),
-          ),
-          GameButton(
-            label: 'LEAVE',
-            type: GameButtonType.primary,
-            onPressed: () async {
-              Navigator.of(ctx).pop();
-              await _gameService.leaveRoom(widget.roomCode);
-
-              if (context.mounted) {
-                context.go('/');
-              }
-            },
-          ),
-        ],
-      ),
-    );
   }
 
   @override
