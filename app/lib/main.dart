@@ -7,6 +7,7 @@ import 'theme.dart';
 import 'router.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'providers/app_provider.dart';
 import 'providers/lifecycle_provider.dart';
 
@@ -41,6 +42,29 @@ void main() async {
   }
 
   final sharedPrefs = await SharedPreferences.getInstance();
+
+  // App Update Cache Clearing Logic
+  final packageInfo = await PackageInfo.fromPlatform();
+  final String currentVersion = '${packageInfo.version}+${packageInfo.buildNumber}';
+  final String? savedVersion = sharedPrefs.getString('app_build_version');
+
+  if (savedVersion != currentVersion) {
+    debugPrint("App updated from $savedVersion to $currentVersion. Clearing caches...");
+    
+    // 1. Read the settings we want to keep
+    final bool? isMuted = sharedPrefs.getBool('isMuted');
+    final bool? hasSeenTutorial = sharedPrefs.getBool('has_seen_tutorial');
+    
+    // 2. Clear old cached data
+    await sharedPrefs.clear();
+    
+    // 3. Restore the important settings
+    if (isMuted != null) await sharedPrefs.setBool('isMuted', isMuted);
+    if (hasSeenTutorial != null) await sharedPrefs.setBool('has_seen_tutorial', hasSeenTutorial);
+    
+    // 4. Save the new version
+    await sharedPrefs.setString('app_build_version', currentVersion);
+  }
 
   runApp(
     ProviderScope(
