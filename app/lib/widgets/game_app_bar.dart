@@ -53,10 +53,7 @@ class GameAppBar extends ConsumerWidget implements PreferredSizeWidget {
               if (isHost) {
                 await gameService.terminateRoom(roomCode);
                 if (context.mounted) {
-                  // Host goes back to lobby (which resets to lobby state) or home?
-                  // Usually terminateRoom sets status to 'lobby' so host stays in lobby flow?
-                  // Actually, for a clean restart, we often go to /lobby/roomCode
-                  context.go('/lobby/$roomCode');
+                  context.go('/');
                 }
               } else {
                 await gameService.leaveRoom(roomCode);

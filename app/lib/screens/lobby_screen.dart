@@ -136,7 +136,15 @@ class _LobbyScreenState extends ConsumerState<LobbyScreen> {
 
     ref.listen(roomStreamProvider, (prev, next) {
       final nextData = next.asData?.value;
-      if (nextData == null) return;
+      
+      // If the room node is deleted (e.g. host terminated in lobby), go home
+      if (nextData == null) {
+        if (context.mounted) {
+          context.go('/');
+        }
+        return;
+      }
+      
       final newStatus = nextData.status;
 
       if (newStatus == 'night') {
