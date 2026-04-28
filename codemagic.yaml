@@ -54,6 +54,8 @@ workflows:
     name: iOS TestFlight Release
     max_build_duration: 120
     instance_type: mac_mini_m1
+    integrations:
+      app_store_connect: "Mafia"
     environment:
       flutter: stable
       xcode: latest
